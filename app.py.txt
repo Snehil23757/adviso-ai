@@ -4,15 +4,10 @@ from openai import OpenAI
 
 client = OpenAI(api_key="YOUR_API_KEY")
 
-st.set_page_config(page_title="Adviso AI", layout="centered")
-
 st.title("🤖 Adviso AI")
-st.write("Upload your data & get smart insights")
+st.write("Upload your data & get insights")
 
-# Upload file
 uploaded_file = st.file_uploader("Upload Excel or CSV", type=["csv", "xlsx"])
-
-data = None
 
 if uploaded_file:
     if uploaded_file.name.endswith(".csv"):
@@ -20,25 +15,14 @@ if uploaded_file:
     else:
         data = pd.read_excel(uploaded_file)
 
-    st.write("### Data Preview")
     st.dataframe(data.head())
 
-# Chat
-user_input = st.chat_input("Ask about your data...")
+    question = st.text_input("Ask a question about your data")
 
-if user_input:
-    context = ""
-    if data is not None:
-        context = f"Dataset:\n{data.head().to_string()}"
+    if question:
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[{"role": "user", "content": question}]
+        )
 
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[
-            {"role": "user", "content": context + "\n" + user_input}
-        ]
-    )
-
-    reply = response.choices[0].message.content
-
-    st.chat_message("user").write(user_input)
-    st.chat_message("assistant").write(reply)
+        st.write(response.choices[0].message.content)
