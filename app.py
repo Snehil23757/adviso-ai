@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
-from openai import OpenAI
+import openai
 
-client = OpenAI(api_key="YOUR_API_KEY")
+openai.api_key = "YOUR_API_KEY"
 
 st.title("🤖 Adviso AI")
-st.write("Upload your data & get insights")
 
 uploaded_file = st.file_uploader("Upload Excel or CSV", type=["csv", "xlsx"])
 
@@ -17,12 +16,12 @@ if uploaded_file:
 
     st.dataframe(data.head())
 
-    question = st.text_input("Ask a question about your data")
+    question = st.text_input("Ask about your data")
 
     if question:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4.1-mini",
             messages=[{"role": "user", "content": question}]
         )
 
-        st.write(response.choices[0].message.content)
+        st.write(response["choices"][0]["message"]["content"])
