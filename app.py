@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import openai
 
-openai.api_key = "YOUR_API_KEY"
+openai.api_key = "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"
 
 st.title("🤖 Adviso AI")
 
