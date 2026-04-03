@@ -2,29 +2,53 @@ import streamlit as st
 import pandas as pd
 from openai import OpenAI
 import time
-import os
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Adviso AI", layout="wide")
 
-# ---------------- STYLE ----------------
+# ---------------- PREMIUM UI ----------------
 st.markdown("""
 <style>
 .stApp {
-    background-color: #0e1117;
+    background: linear-gradient(to right, #0f172a, #020617);
     color: white;
 }
+
+/* Chat bubbles */
 .chat-user {
-    background-color: #1f6feb;
-    padding: 10px;
-    border-radius: 10px;
-    margin: 5px;
+    background: #2563eb;
+    padding: 12px;
+    border-radius: 12px;
+    margin: 6px 0;
 }
+
 .chat-bot {
-    background-color: #2d2f34;
-    padding: 10px;
-    border-radius: 10px;
-    margin: 5px;
+    background: #1e293b;
+    padding: 12px;
+    border-radius: 12px;
+    margin: 6px 0;
+}
+
+/* Cards */
+.kpi-card {
+    background: linear-gradient(145deg, #1f2937, #111827);
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+/* Inputs */
+.stTextInput, .stSelectbox, .stMultiSelect {
+    background-color: #1e293b !important;
+}
+
+/* Buttons */
+.stButton button {
+    background: linear-gradient(to right, #2563eb, #1d4ed8);
+    color: white;
+    border-radius: 8px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -83,7 +107,7 @@ if data is not None:
     col2.metric("Columns", data.shape[1])
     col3.metric("Missing", data.isnull().sum().sum())
 
-    st.subheader("📈 Statistics")
+    st.subheader("📈 Statistical Summary")
     st.dataframe(data.describe())
 
 # ---------------- VISUALIZATION ----------------
@@ -93,8 +117,13 @@ if data is not None:
     numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
 
     if len(numeric_cols) >= 2:
-        x = st.selectbox("X-axis", numeric_cols)
-        y = st.selectbox("Y-axis", numeric_cols)
+        col1, col2 = st.columns(2)
+
+        with col1:
+            x = st.selectbox("X-axis", numeric_cols)
+
+        with col2:
+            y = st.selectbox("Y-axis", numeric_cols)
 
         st.line_chart(data[[x, y]])
 
@@ -110,14 +139,63 @@ if data is not None:
             st.bar_chart(data[numeric_cols[:2]])
             st.dataframe(data[numeric_cols].corr())
 
-# ---------------- KPI ----------------
+# ---------------- ADVANCED KPI DASHBOARD ----------------
 if data is not None:
-    st.markdown("## 📊 KPI Metrics")
+    st.markdown("## 📊 KPI Dashboard")
 
     numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
 
     if len(numeric_cols) > 0:
-        st.metric("Total", int(data[numeric_cols[0]].sum()))
+
+        selected_metrics = st.multiselect(
+            "Select KPIs",
+            numeric_cols,
+            default=list(numeric_cols[:3])
+        )
+
+        cols = st.columns(3)
+
+        for i, col_name in enumerate(selected_metrics):
+            values = data[col_name]
+
+            total = int(values.sum())
+            avg = round(values.mean(), 2)
+            max_val = int(values.max())
+
+            # ---- KPI COMPARISON ----
+            if len(values) > 2:
+                current = values.iloc[-1]
+                previous = values.iloc[-2]
+
+                change = current - previous
+                percent_change = (change / previous) * 100 if previous != 0 else 0
+
+                # ---- TREND ----
+                if change > 0:
+                    arrow = "↑"
+                    color = "#22c55e"  # green
+                elif change < 0:
+                    arrow = "↓"
+                    color = "#ef4444"  # red
+                else:
+                    arrow = "→"
+                    color = "#9ca3af"
+
+                trend_text = f"{arrow} {round(percent_change,2)}%"
+
+            else:
+                trend_text = "N/A"
+                color = "#9ca3af"
+
+            with cols[i % 3]:
+                st.markdown(f"""
+                <div class="kpi-card">
+                    <h4 style="color:#9ca3af;">{col_name}</h4>
+                    <h1 style="color:white;">{total:,}</h1>
+                    <p style="color:{color}; font-size:18px;">{trend_text}</p>
+                    <p style="color:#6b7280;">Avg: {avg} | Max: {max_val}</p>
+                </div>
+                """, unsafe_allow_html=True)
 
 # ---------------- CHAT ----------------
 if "messages" not in st.session_state:
@@ -129,7 +207,7 @@ for msg in st.session_state.messages:
     else:
         st.markdown(f"<div class='chat-bot'>🤖 {msg['content']}</div>", unsafe_allow_html=True)
 
-user_input = st.chat_input("Ask anything...")
+user_input = st.chat_input("Ask anything about your data...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
