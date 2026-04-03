@@ -5,54 +5,48 @@ from openai import OpenAI
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Adviso AI", layout="wide")
 
-# ---------------- APPLE-LEVEL UI ----------------
+# ---------------- CLEAN UI ----------------
 st.markdown("""
 <style>
 
-/* GLOBAL */
+/* -------- GLOBAL -------- */
 .stApp {
     background-color: #0a0a0a;
     color: #f5f5f7;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
 }
 
-/* SPACING */
+/* CENTER CONTENT */
+.main > div {
+    max-width: 900px;
+    margin: auto;
+}
+
+/* REMOVE EXTRA SPACE */
 .block-container {
-    padding-top: 3rem;
-    padding-bottom: 3rem;
+    padding-top: 2rem;
 }
 
-/* HEADINGS */
-h1, h2, h3 {
-    font-weight: 600;
-}
-
-/* SUBTEXT */
-p {
-    color: #9ca3af;
-}
-
-/* CARD */
-.apple-card {
-    background: #111111;
-    padding: 24px;
-    border-radius: 18px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-}
-
-/* KPI */
-.kpi-title {
-    font-size: 13px;
-    color: #9ca3af;
-}
-
-.kpi-value {
+/* TITLE */
+.title {
     font-size: 34px;
     font-weight: 600;
+    text-align: center;
 }
 
-.kpi-trend {
-    font-size: 13px;
+/* SUBTITLE */
+.subtitle {
+    text-align: center;
+    color: #9ca3af;
+    margin-bottom: 30px;
+}
+
+/* KPI CARD */
+.kpi {
+    background: #111111;
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 10px;
 }
 
 /* CHAT */
@@ -60,39 +54,43 @@ p {
     background: #2563eb;
     padding: 12px;
     border-radius: 16px;
-    margin: 6px 0;
 }
 
 .chat-bot {
     background: #1c1c1e;
     padding: 12px;
     border-radius: 16px;
-    margin: 6px 0;
 }
 
-/* BUTTON */
-.stButton button {
-    background: #2563eb;
-    border-radius: 999px;
-    padding: 8px 18px;
+/* CHAT INPUT FIX */
+section[data-testid="stChatInput"] {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
 }
 
 /* SIDEBAR */
 section[data-testid="stSidebar"] {
     background-color: #050505;
+    border-right: 1px solid #1f2937;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------- HEADER ----------------
-st.markdown("## Adviso AI")
-st.caption("Turning data into decisions")
+st.markdown("<div class='title'>Adviso AI</div>", unsafe_allow_html=True)
+st.markdown("<div class='subtitle'>Turning data into decisions</div>", unsafe_allow_html=True)
 
 # ---------------- SIDEBAR ----------------
-st.sidebar.markdown("### Upload Data")
-uploaded_file = st.sidebar.file_uploader("", type=["csv", "xlsx"])
+st.sidebar.markdown("## 📁 Data")
+uploaded_file = st.sidebar.file_uploader("Upload CSV / Excel", type=["csv", "xlsx"])
+st.sidebar.markdown("---")
+st.sidebar.caption("Adviso AI v1.0")
 
+# ---------------- OPENAI ----------------
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # ---------------- LOAD DATA ----------------
@@ -105,10 +103,19 @@ if uploaded_file:
         else:
             data = pd.read_excel(uploaded_file)
 
-        st.sidebar.success("Data uploaded successfully")
+        st.sidebar.success("Data uploaded")
 
     except Exception as e:
         st.error(e)
+
+# ---------------- EMPTY STATE ----------------
+if data is None:
+    st.markdown("""
+    <div style='text-align:center; margin-top:80px;'>
+        <h3>Upload your data to get started</h3>
+        <p style='color:#9ca3af'>Analyze, visualize, and chat with your data</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ---------------- OVERVIEW ----------------
 if data is not None:
@@ -125,11 +132,7 @@ if data is not None:
 
     numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
 
-    selected = st.multiselect(
-        "Select metrics",
-        numeric_cols,
-        default=list(numeric_cols[:3])
-    )
+    selected = st.multiselect("Select metrics", numeric_cols, default=list(numeric_cols[:3]))
 
     cols = st.columns(3)
 
@@ -151,10 +154,10 @@ if data is not None:
 
         with cols[i % 3]:
             st.markdown(f"""
-            <div class="apple-card">
-                <div class="kpi-title">{col}</div>
-                <div class="kpi-value">{total:,}</div>
-                <div class="kpi-trend" style="color:{color}">{trend}</div>
+            <div class="kpi">
+                <h4>{col}</h4>
+                <h2>{total:,}</h2>
+                <p style="color:{color}">{trend}</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -162,20 +165,19 @@ if data is not None:
 if data is not None:
     st.markdown("## Analytics")
 
-    df = data.copy()
-    num_cols = df.select_dtypes(include=['int64', 'float64']).columns
+    numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown("### Trend")
-        if len(num_cols) > 0:
-            st.line_chart(df[num_cols[0]])
+        if len(numeric_cols) > 0:
+            st.line_chart(data[numeric_cols[0]])
 
     with col2:
         st.markdown("### Comparison")
-        if len(num_cols) > 1:
-            st.bar_chart(df[num_cols[:2]])
+        if len(numeric_cols) > 1:
+            st.bar_chart(data[numeric_cols[:2]])
 
 # ---------------- AI INSIGHTS ----------------
 if data is not None:
@@ -190,18 +192,16 @@ if data is not None:
             st.warning("AI unavailable")
 
 # ---------------- CHAT ----------------
-st.markdown("## Assistant")
+st.markdown("## 🤖 Assistant")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 for msg in st.session_state.messages:
-    if msg["role"] == "user":
-        st.markdown(f"<div class='chat-user'>{msg['content']}</div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div class='chat-bot'>{msg['content']}</div>", unsafe_allow_html=True)
+    with st.chat_message(msg["role"]):
+        st.write(msg["content"])
 
-user_input = st.chat_input("Ask anything...")
+user_input = st.chat_input("Ask anything about your data...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
