@@ -1,107 +1,131 @@
 import streamlit as st
 import pandas as pd
 from openai import OpenAI
-import os
+import time
 
-# ---------------- LOGIN SYSTEM ----------------
+# ---------------- CONFIG ----------------
 st.set_page_config(page_title="Adviso AI", layout="wide")
 
-st.sidebar.title("🔐 Login")
-
-username = st.sidebar.text_input("Username")
-password = st.sidebar.text_input("Password", type="password")
-
-if username != "admin" or password != "1234":
-    st.warning("Please login to continue")
-    st.stop()
-
-# ---------------- API SETUP ----------------
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-# ---------------- UI DESIGN ----------------
+# ---------------- STYLE ----------------
 st.markdown("""
 <style>
-body {
+.stApp {
     background-color: #0e1117;
     color: white;
+}
+.chat-user {
+    background-color: #1f6feb;
+    padding: 10px;
+    border-radius: 10px;
+    margin: 5px;
+}
+.chat-bot {
+    background-color: #2d2f34;
+    padding: 10px;
+    border-radius: 10px;
+    margin: 5px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🤖 Adviso AI")
-st.markdown("### 📊 Smart Business Insights Platform")
+# ---------------- SIDEBAR ----------------
+st.sidebar.title("🤖 Adviso AI")
 
-# ---------------- FILE UPLOAD ----------------
-uploaded_file = st.file_uploader("Upload Excel or CSV", type=["csv", "xlsx"])
+uploaded_file = st.sidebar.file_uploader("Upload Data", type=["csv", "xlsx"])
 
+# ---------------- OPENAI ----------------
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+# ---------------- DATA ----------------
 data = None
 
 if uploaded_file:
-    try:
-        if uploaded_file.name.endswith(".csv"):
-            data = pd.read_csv(uploaded_file)
-        else:
-            data = pd.read_excel(uploaded_file)
+    if uploaded_file.name.endswith(".csv"):
+        data = pd.read_csv(uploaded_file)
+    else:
+        data = pd.read_excel(uploaded_file)
 
-        st.success("✅ File uploaded successfully")
+    st.sidebar.success("✅ Data uploaded")
 
-        # Preview
-        st.subheader("📄 Data Preview")
-        st.dataframe(data.head())
-
-        # ---------------- CHARTS ----------------
-        st.subheader("📊 Data Visualization")
-
-        numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
-
-        if len(numeric_cols) >= 2:
-            col1 = st.selectbox("Select X-axis", numeric_cols)
-            col2 = st.selectbox("Select Y-axis", numeric_cols)
-
-            st.line_chart(data[[col1, col2]])
-
-    except Exception as e:
-        st.error(f"Error: {e}")
-
-# ---------------- AUTO AI INSIGHTS ----------------
+# ---------------- DASHBOARD ----------------
 if data is not None:
-    st.subheader("🧠 AI Auto Insights")
+    st.sidebar.markdown("### 📊 Dashboard")
 
-    if st.button("Generate Insights"):
+    col1, col2 = st.sidebar.columns(2)
+    col1.metric("Rows", data.shape[0])
+    col2.metric("Columns", data.shape[1])
+
+# ---------------- TITLE ----------------
+st.title("💬 Adviso AI Copilot")
+
+# ---------------- AUTO INSIGHTS ----------------
+if data is not None:
+    with st.expander("🧠 Auto Insights"):
         try:
-            context = f"Analyze this dataset:\n{data.head().to_string()}"
+            context = f"Analyze dataset:\n{data.head().to_string()}"
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a business analyst."},
-                    {"role": "user", "content": context}
-                ]
+                messages=[{"role": "user", "content": context}]
             )
 
-            st.success(response.choices[0].message.content)
+            st.write(response.choices[0].message.content)
 
-        except Exception as e:
-            st.error(f"AI Error: {e}")
+        except:
+            st.warning("AI insights unavailable")
 
-# ---------------- CHATBOT ----------------
-st.subheader("💬 Ask Questions")
+# ---------------- CHAT ----------------
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-question = st.chat_input("Ask anything about your data...")
+# Display chat
+for msg in st.session_state.messages:
+    if msg["role"] == "user":
+        st.markdown(f"<div class='chat-user'>🧑 {msg['content']}</div>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"<div class='chat-bot'>🤖 {msg['content']}</div>", unsafe_allow_html=True)
 
-if question and data is not None:
-    try:
+# ---------------- INPUT ----------------
+user_input = st.chat_input("Ask anything...")
+
+if user_input:
+    st.session_state.messages.append({"role": "user", "content": user_input})
+
+    context = ""
+    if data is not None:
         context = f"Dataset:\n{data.head().to_string()}"
 
+    placeholder = st.empty()
+    full_response = ""
+
+    try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "user", "content": context + "\n" + question}
-            ]
+            messages=[{"role": "user", "content": context + "\n" + user_input}]
         )
 
-        st.chat_message("user").write(question)
-        st.chat_message("assistant").write(response.choices[0].message.content)
+        reply = response.choices[0].message.content
+
+        # ✨ Typing animation
+        for word in reply.split():
+            full_response += word + " "
+            placeholder.markdown(
+                f"<div class='chat-bot'>🤖 {full_response}</div>",
+                unsafe_allow_html=True
+            )
+            time.sleep(0.03)
 
     except Exception as e:
-        st.error(f"Error: {e}")
+        full_response = f"❌ Error: {e}"
+
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
+
+    # ---------------- CHART IN CHAT ----------------
+    if data is not None:
+        numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
+
+        if len(numeric_cols) >= 2:
+            st.markdown("### 📊 Quick Chart")
+            st.line_chart(data[numeric_cols[:2]])
+
+    st.rerun()
