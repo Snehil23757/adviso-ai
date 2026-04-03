@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from openai import OpenAI
 import time
+import os
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Adviso AI", layout="wide")
@@ -30,27 +31,29 @@ st.markdown("""
 
 # ---------------- SIDEBAR ----------------
 st.sidebar.title("🤖 Adviso AI")
-
 uploaded_file = st.sidebar.file_uploader("Upload Data", type=["csv", "xlsx"])
 
 # ---------------- OPENAI ----------------
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# ---------------- DATA ----------------
+# ---------------- LOAD DATA ----------------
 data = None
 
 if uploaded_file:
-    if uploaded_file.name.endswith(".csv"):
-        data = pd.read_csv(uploaded_file)
-    else:
-        data = pd.read_excel(uploaded_file)
+    try:
+        if uploaded_file.name.endswith(".csv"):
+            data = pd.read_csv(uploaded_file)
+        else:
+            data = pd.read_excel(uploaded_file)
 
-    st.sidebar.success("✅ Data uploaded")
+        st.sidebar.success("✅ Data uploaded")
+
+    except Exception as e:
+        st.error(e)
 
 # ---------------- DASHBOARD ----------------
 if data is not None:
     st.sidebar.markdown("### 📊 Dashboard")
-
     col1, col2 = st.sidebar.columns(2)
     col1.metric("Rows", data.shape[0])
     col2.metric("Columns", data.shape[1])
@@ -63,29 +66,69 @@ if data is not None:
     with st.expander("🧠 Auto Insights"):
         try:
             context = f"Analyze dataset:\n{data.head().to_string()}"
-
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": context}]
             )
-
             st.write(response.choices[0].message.content)
+        except Exception as e:
+            st.warning(e)
 
-        except:
-            st.warning("AI insights unavailable")
+# ---------------- FULL INSIGHTS ----------------
+if data is not None:
+    st.markdown("## 📊 Full Data Insights")
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Rows", data.shape[0])
+    col2.metric("Columns", data.shape[1])
+    col3.metric("Missing", data.isnull().sum().sum())
+
+    st.subheader("📈 Statistics")
+    st.dataframe(data.describe())
+
+# ---------------- VISUALIZATION ----------------
+if data is not None:
+    st.subheader("📊 Visualization")
+
+    numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
+
+    if len(numeric_cols) >= 2:
+        x = st.selectbox("X-axis", numeric_cols)
+        y = st.selectbox("Y-axis", numeric_cols)
+
+        st.line_chart(data[[x, y]])
+
+# ---------------- AUTO DASHBOARD ----------------
+if data is not None:
+    st.markdown("## 🤖 Auto Dashboard")
+
+    if st.button("Generate Dashboard"):
+        numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
+
+        if len(numeric_cols) >= 2:
+            st.line_chart(data[numeric_cols[:2]])
+            st.bar_chart(data[numeric_cols[:2]])
+            st.dataframe(data[numeric_cols].corr())
+
+# ---------------- KPI ----------------
+if data is not None:
+    st.markdown("## 📊 KPI Metrics")
+
+    numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
+
+    if len(numeric_cols) > 0:
+        st.metric("Total", int(data[numeric_cols[0]].sum()))
 
 # ---------------- CHAT ----------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat
 for msg in st.session_state.messages:
     if msg["role"] == "user":
         st.markdown(f"<div class='chat-user'>🧑 {msg['content']}</div>", unsafe_allow_html=True)
     else:
         st.markdown(f"<div class='chat-bot'>🤖 {msg['content']}</div>", unsafe_allow_html=True)
 
-# ---------------- INPUT ----------------
 user_input = st.chat_input("Ask anything...")
 
 if user_input:
@@ -106,158 +149,16 @@ if user_input:
 
         reply = response.choices[0].message.content
 
-        # ✨ Typing animation
         for word in reply.split():
             full_response += word + " "
             placeholder.markdown(
                 f"<div class='chat-bot'>🤖 {full_response}</div>",
                 unsafe_allow_html=True
             )
-            time.sleep(0.03)
+            time.sleep(0.02)
 
     except Exception as e:
-        full_response = f"❌ Error: {e}"
+        full_response = f"❌ {e}"
 
     st.session_state.messages.append({"role": "assistant", "content": full_response})
-
-    # ---------------- CHART IN CHAT ----------------
-    if data is not None:
-        numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
-
-        if len(numeric_cols) >= 2:
-            st.markdown("### 📊 Quick Chart")
-            st.line_chart(data[numeric_cols[:2]])
-
     st.rerun()
-# ---------------- VISUALIZATION ----------------
-if data is not None:
-    st.subheader("📊 Data Visualization")
-
-    numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
-
-    if len(numeric_cols) >= 2:
-        col1, col2 = st.columns(2)
-
-        with col1:
-            x_axis = st.selectbox("Select X-axis", numeric_cols)
-
-        with col2:
-            y_axis = st.selectbox("Select Y-axis", numeric_cols)
-
-        st.line_chart(data[[x_axis, y_axis]])
-
-    else:
-        st.warning("Not enough numeric columns for visualization")
-        # Chart after response
-if data is not None:
-    numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
-
-    if len(numeric_cols) >= 2:
-        st.markdown("### 📊 Quick Insights Chart")
-        st.bar_chart(data[numeric_cols[:2]])
-        If you want, I can add:
-
-🤖 “Auto Dashboard Generator”
-
-→ AI creates charts automatically
-
-📄 “Download Report (PDF)”
-
-→ Users export insights
-
-📊 KPI cards (Revenue, Profit, etc.)
-# ---------------- AUTO DASHBOARD ----------------
-if data is not None:
-    st.markdown("## 🤖 Auto Dashboard (AI Generated)")
-
-    if st.button("Generate Smart Dashboard"):
-        try:
-            numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
-
-            if len(numeric_cols) >= 2:
-                # Simple smart picks
-                col_x = numeric_cols[0]
-                col_y = numeric_cols[1]
-
-                st.success(f"Showing insights for: {col_x} vs {col_y}")
-
-                col1, col2 = st.columns(2)
-
-                with col1:
-                    st.write("📈 Trend Analysis")
-                    st.line_chart(data[[col_x, col_y]])
-
-                with col2:
-                    st.write("📊 Comparison")
-                    st.bar_chart(data[[col_x, col_y]])
-
-                # Correlation
-                st.write("🔗 Correlation Matrix")
-                st.dataframe(data[numeric_cols].corr())
-
-            else:
-                st.warning("Not enough numeric data")
-
-        except Exception as e:
-            st.error(e)'
-            # ---------------- KPI CARDS ----------------
-if data is not None:
-    st.markdown("## 📊 Key Metrics")
-
-    numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
-
-    if len(numeric_cols) >= 1:
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            st.metric("Total", int(data[numeric_cols[0]].sum()))
-
-        if len(numeric_cols) > 1:
-            with col2:
-                st.metric("Average", round(data[numeric_cols[1]].mean(), 2))
-
-        if len(numeric_cols) > 2:
-            with col3:
-                st.metric("Max", int(data[numeric_cols[2]].max()))
-                # ---------------- PDF REPORT ----------------
-from reportlab.platypus import SimpleDocTemplate, Paragraph
-from reportlab.lib.styles import getSampleStyleSheet
-
-def generate_pdf(text):
-    file_path = "/tmp/report.pdf"
-    doc = SimpleDocTemplate(file_path)
-    styles = getSampleStyleSheet()
-
-    content = []
-    content.append(Paragraph(text, styles["Normal"]))
-
-    doc.build(content)
-    return file_path
-
-
-# Button
-if data is not None:
-    st.markdown("## 📄 Export Report")
-
-    if st.button("Generate PDF Report"):
-        try:
-            summary = f"""
-            Dataset Summary:
-            Rows: {data.shape[0]}
-            Columns: {data.shape[1]}
-
-            Basic Stats:
-            {data.describe().to_string()}
-            """
-
-            pdf_path = generate_pdf(summary)
-
-            with open(pdf_path, "rb") as f:
-                st.download_button(
-                    "📥 Download Report",
-                    f,
-                    file_name="report.pdf"
-                )
-
-        except Exception as e:
-            st.error(e)
