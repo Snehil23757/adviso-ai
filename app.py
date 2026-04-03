@@ -3,22 +3,39 @@ import pandas as pd
 from openai import OpenAI
 import os
 
-# Load API key securely
+# ---------------- LOGIN SYSTEM ----------------
+st.set_page_config(page_title="Adviso AI", layout="wide")
+
+st.sidebar.title("🔐 Login")
+
+username = st.sidebar.text_input("Username")
+password = st.sidebar.text_input("Password", type="password")
+
+if username != "admin" or password != "1234":
+    st.warning("Please login to continue")
+    st.stop()
+
+# ---------------- API SETUP ----------------
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Page config
-st.set_page_config(page_title="Adviso AI", layout="centered")
+# ---------------- UI DESIGN ----------------
+st.markdown("""
+<style>
+body {
+    background-color: #0e1117;
+    color: white;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# Title
 st.title("🤖 Adviso AI")
-st.markdown("### 📊 Upload your data & get smart AI insights")
+st.markdown("### 📊 Smart Business Insights Platform")
 
-# File upload
+# ---------------- FILE UPLOAD ----------------
 uploaded_file = st.file_uploader("Upload Excel or CSV", type=["csv", "xlsx"])
 
 data = None
 
-# Read file
 if uploaded_file:
     try:
         if uploaded_file.name.endswith(".csv"):
@@ -28,45 +45,63 @@ if uploaded_file:
 
         st.success("✅ File uploaded successfully")
 
-        # Show preview
+        # Preview
         st.subheader("📄 Data Preview")
         st.dataframe(data.head())
 
+        # ---------------- CHARTS ----------------
+        st.subheader("📊 Data Visualization")
+
+        numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
+
+        if len(numeric_cols) >= 2:
+            col1 = st.selectbox("Select X-axis", numeric_cols)
+            col2 = st.selectbox("Select Y-axis", numeric_cols)
+
+            st.line_chart(data[[col1, col2]])
+
     except Exception as e:
-        st.error(f"Error reading file: {e}")
+        st.error(f"Error: {e}")
 
-# Chat section
-st.subheader("💬 Ask Questions About Your Data")
+# ---------------- AUTO AI INSIGHTS ----------------
+if data is not None:
+    st.subheader("🧠 AI Auto Insights")
 
-question = st.chat_input("Type your question here...")
-
-if question:
-    if data is None:
-        st.warning("⚠️ Please upload a file first")
-    else:
+    if st.button("Generate Insights"):
         try:
-            # Create context from data
-            context = f"""
-            You are a business data analyst.
-            Analyze the following dataset preview and answer clearly:
+            context = f"Analyze this dataset:\n{data.head().to_string()}"
 
-            {data.head().to_string()}
-            """
-
-            # API call
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "You are a helpful business analyst."},
-                    {"role": "user", "content": context + "\n\nQuestion: " + question}
+                    {"role": "system", "content": "You are a business analyst."},
+                    {"role": "user", "content": context}
                 ]
             )
 
-            answer = response.choices[0].message.content
-
-            # Display chat
-            st.chat_message("user").write(question)
-            st.chat_message("assistant").write(answer)
+            st.success(response.choices[0].message.content)
 
         except Exception as e:
-            st.error(f"❌ Error: {e}")
+            st.error(f"AI Error: {e}")
+
+# ---------------- CHATBOT ----------------
+st.subheader("💬 Ask Questions")
+
+question = st.chat_input("Ask anything about your data...")
+
+if question and data is not None:
+    try:
+        context = f"Dataset:\n{data.head().to_string()}"
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "user", "content": context + "\n" + question}
+            ]
+        )
+
+        st.chat_message("user").write(question)
+        st.chat_message("assistant").write(response.choices[0].message.content)
+
+    except Exception as e:
+        st.error(f"Error: {e}")
