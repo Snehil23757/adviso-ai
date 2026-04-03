@@ -219,3 +219,45 @@ if data is not None:
         if len(numeric_cols) > 2:
             with col3:
                 st.metric("Max", int(data[numeric_cols[2]].max()))
+                # ---------------- PDF REPORT ----------------
+from reportlab.platypus import SimpleDocTemplate, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+
+def generate_pdf(text):
+    file_path = "/tmp/report.pdf"
+    doc = SimpleDocTemplate(file_path)
+    styles = getSampleStyleSheet()
+
+    content = []
+    content.append(Paragraph(text, styles["Normal"]))
+
+    doc.build(content)
+    return file_path
+
+
+# Button
+if data is not None:
+    st.markdown("## 📄 Export Report")
+
+    if st.button("Generate PDF Report"):
+        try:
+            summary = f"""
+            Dataset Summary:
+            Rows: {data.shape[0]}
+            Columns: {data.shape[1]}
+
+            Basic Stats:
+            {data.describe().to_string()}
+            """
+
+            pdf_path = generate_pdf(summary)
+
+            with open(pdf_path, "rb") as f:
+                st.download_button(
+                    "📥 Download Report",
+                    f,
+                    file_name="report.pdf"
+                )
+
+        except Exception as e:
+            st.error(e)
