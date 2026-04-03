@@ -223,3 +223,85 @@ if user:
 
     st.session_state.messages.append({"role": "assistant", "content": reply})
     st.rerun()
+    # ---------------- TIME SERIES FORECAST ----------------
+if data is not None:
+    st.markdown("## 🔮 Forecast Future Trends")
+
+    numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
+
+    if len(numeric_cols) > 0:
+        col = st.selectbox("Select Column to Forecast", numeric_cols)
+
+        values = data[col].values
+        x = np.arange(len(values))
+
+        coeffs = np.polyfit(x, values, 1)
+        trend = np.poly1d(coeffs)
+
+        future_x = np.arange(len(values), len(values) + 10)
+        future_y = trend(future_x)
+
+        fig, ax = plt.subplots()
+        ax.plot(x, values, label="Actual")
+        ax.plot(future_x, future_y, label="Forecast", linestyle='dashed')
+
+        ax.legend()
+        st.pyplot(fig)
+
+        st.success("Future values predicted successfully 🚀")
+        # ---------------- AI CHART RECOMMENDER ----------------
+if data is not None:
+    st.markdown("## 🤖 AI Chart Recommendation")
+
+    try:
+        columns_info = ", ".join(data.columns)
+
+        prompt = f"""
+        Based on dataset columns: {columns_info}
+        Suggest best chart type (bar, line, pie, histogram)
+        """
+
+        res = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        suggestion = res.choices[0].message.content
+        st.info(f"💡 AI Suggestion: {suggestion}")
+
+    except:
+        st.warning("AI suggestion unavailable")
+        # ---------------- DOWNLOAD CHART ----------------
+import io
+
+if data is not None:
+    st.markdown("## 📄 Export Chart")
+
+    if st.button("Download Last Chart"):
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png")
+        st.download_button(
+            label="📥 Download Image",
+            data=buf.getvalue(),
+            file_name="chart.png",
+            mime="image/png"
+        )
+        # -------- AI EXPLANATION --------
+try:
+    explanation_prompt = f"""
+    Explain this regression:
+    X = {x_col}
+    Y = {y_col}
+    Relationship observed.
+    """
+
+    res = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": explanation_prompt}]
+    )
+
+    st.markdown("### 🧠 AI Explanation")
+    st.write(res.choices[0].message.content)
+
+except:
+    st.warning("AI explanation unavailable")
