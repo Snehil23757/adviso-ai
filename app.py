@@ -13,42 +13,24 @@ st.markdown("""
     background: linear-gradient(to right, #0f172a, #020617);
     color: white;
 }
-
-/* Chat bubbles */
 .chat-user {
     background: #2563eb;
     padding: 12px;
     border-radius: 12px;
     margin: 6px 0;
 }
-
 .chat-bot {
     background: #1e293b;
     padding: 12px;
     border-radius: 12px;
     margin: 6px 0;
 }
-
-/* Cards */
 .kpi-card {
     background: linear-gradient(145deg, #1f2937, #111827);
     padding: 20px;
     border-radius: 15px;
     text-align: center;
     margin-bottom: 15px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-}
-
-/* Inputs */
-.stTextInput, .stSelectbox, .stMultiSelect {
-    background-color: #1e293b !important;
-}
-
-/* Buttons */
-.stButton button {
-    background: linear-gradient(to right, #2563eb, #1d4ed8);
-    color: white;
-    border-radius: 8px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -57,145 +39,122 @@ st.markdown("""
 st.sidebar.title("🤖 Adviso AI")
 uploaded_file = st.sidebar.file_uploader("Upload Data", type=["csv", "xlsx"])
 
-# ---------------- OPENAI ----------------
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # ---------------- LOAD DATA ----------------
 data = None
 
 if uploaded_file:
-    try:
-        if uploaded_file.name.endswith(".csv"):
-            data = pd.read_csv(uploaded_file)
-        else:
-            data = pd.read_excel(uploaded_file)
+    if uploaded_file.name.endswith(".csv"):
+        data = pd.read_csv(uploaded_file)
+    else:
+        data = pd.read_excel(uploaded_file)
 
-        st.sidebar.success("✅ Data uploaded")
-
-    except Exception as e:
-        st.error(e)
-
-# ---------------- DASHBOARD ----------------
-if data is not None:
-    st.sidebar.markdown("### 📊 Dashboard")
-    col1, col2 = st.sidebar.columns(2)
-    col1.metric("Rows", data.shape[0])
-    col2.metric("Columns", data.shape[1])
+    st.sidebar.success("✅ Data uploaded")
 
 # ---------------- TITLE ----------------
 st.title("💬 Adviso AI Copilot")
 
 # ---------------- AUTO INSIGHTS ----------------
 if data is not None:
-    with st.expander("🧠 Auto Insights"):
+    with st.expander("🧠 AI Insights"):
         try:
-            context = f"Analyze dataset:\n{data.head().to_string()}"
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[{"role": "user", "content": context}]
+                messages=[{"role": "user", "content": f"Analyze:\n{data.head().to_string()}"}]
             )
             st.write(response.choices[0].message.content)
-        except Exception as e:
-            st.warning(e)
+        except:
+            st.warning("AI unavailable")
 
-# ---------------- FULL INSIGHTS ----------------
+# ---------------- BASIC METRICS ----------------
 if data is not None:
-    st.markdown("## 📊 Full Data Insights")
-
     col1, col2, col3 = st.columns(3)
     col1.metric("Rows", data.shape[0])
     col2.metric("Columns", data.shape[1])
     col3.metric("Missing", data.isnull().sum().sum())
 
-    st.subheader("📈 Statistical Summary")
-    st.dataframe(data.describe())
-
-# ---------------- VISUALIZATION ----------------
-if data is not None:
-    st.subheader("📊 Visualization")
-
-    numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
-
-    if len(numeric_cols) >= 2:
-        col1, col2 = st.columns(2)
-
-        with col1:
-            x = st.selectbox("X-axis", numeric_cols)
-
-        with col2:
-            y = st.selectbox("Y-axis", numeric_cols)
-
-        st.line_chart(data[[x, y]])
-
-# ---------------- AUTO DASHBOARD ----------------
-if data is not None:
-    st.markdown("## 🤖 Auto Dashboard")
-
-    if st.button("Generate Dashboard"):
-        numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
-
-        if len(numeric_cols) >= 2:
-            st.line_chart(data[numeric_cols[:2]])
-            st.bar_chart(data[numeric_cols[:2]])
-            st.dataframe(data[numeric_cols].corr())
-
-# ---------------- ADVANCED KPI DASHBOARD ----------------
+# ---------------- ADVANCED KPI ----------------
 if data is not None:
     st.markdown("## 📊 KPI Dashboard")
 
     numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
 
-    if len(numeric_cols) > 0:
+    selected_metrics = st.multiselect(
+        "Select KPIs",
+        numeric_cols,
+        default=list(numeric_cols[:3])
+    )
 
-        selected_metrics = st.multiselect(
-            "Select KPIs",
-            numeric_cols,
-            default=list(numeric_cols[:3])
-        )
+    cols = st.columns(3)
 
-        cols = st.columns(3)
+    for i, col_name in enumerate(selected_metrics):
+        values = data[col_name]
 
-        for i, col_name in enumerate(selected_metrics):
-            values = data[col_name]
+        total = int(values.sum())
 
-            total = int(values.sum())
-            avg = round(values.mean(), 2)
-            max_val = int(values.max())
+        if len(values) > 2:
+            change = values.iloc[-1] - values.iloc[-2]
 
-            # ---- KPI COMPARISON ----
-            if len(values) > 2:
-                current = values.iloc[-1]
-                previous = values.iloc[-2]
-
-                change = current - previous
-                percent_change = (change / previous) * 100 if previous != 0 else 0
-
-                # ---- TREND ----
-                if change > 0:
-                    arrow = "↑"
-                    color = "#22c55e"  # green
-                elif change < 0:
-                    arrow = "↓"
-                    color = "#ef4444"  # red
-                else:
-                    arrow = "→"
-                    color = "#9ca3af"
-
-                trend_text = f"{arrow} {round(percent_change,2)}%"
-
+            if change > 0:
+                trend = "↑"
+                color = "#22c55e"
+            elif change < 0:
+                trend = "↓"
+                color = "#ef4444"
             else:
-                trend_text = "N/A"
+                trend = "→"
                 color = "#9ca3af"
+        else:
+            trend = "-"
+            color = "#9ca3af"
 
-            with cols[i % 3]:
-                st.markdown(f"""
-                <div class="kpi-card">
-                    <h4 style="color:#9ca3af;">{col_name}</h4>
-                    <h1 style="color:white;">{total:,}</h1>
-                    <p style="color:{color}; font-size:18px;">{trend_text}</p>
-                    <p style="color:#6b7280;">Avg: {avg} | Max: {max_val}</p>
-                </div>
-                """, unsafe_allow_html=True)
+        with cols[i % 3]:
+            st.markdown(f"""
+            <div class="kpi-card">
+                <h4>{col_name}</h4>
+                <h1>{total:,}</h1>
+                <p style="color:{color}">{trend}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+# ---------------- ADVANCED DASHBOARD ----------------
+if data is not None:
+    st.markdown("## 📊 Advanced Dashboard")
+
+    df = data.copy()
+
+    numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_cols = df.select_dtypes(include=['object']).columns
+
+    st.sidebar.markdown("### 🔍 Filters")
+
+    if len(categorical_cols) > 0:
+        cat = st.sidebar.selectbox("Category", categorical_cols)
+        vals = st.sidebar.multiselect("Values", df[cat].unique())
+        if vals:
+            df = df[df[cat].isin(vals)]
+
+    if len(numeric_cols) > 0:
+        num = st.sidebar.selectbox("Numeric", numeric_cols)
+        min_val, max_val = st.sidebar.slider(
+            "Range",
+            float(df[num].min()),
+            float(df[num].max()),
+            (float(df[num].min()), float(df[num].max()))
+        )
+        df = df[(df[num] >= min_val) & (df[num] <= max_val)]
+
+    # Charts
+    c1, c2 = st.columns(2)
+
+    with c1:
+        if len(numeric_cols) > 0:
+            st.line_chart(df[numeric_cols[0]])
+
+    with c2:
+        if len(numeric_cols) > 1:
+            st.bar_chart(df[numeric_cols[:2]])
 
 # ---------------- CHAT ----------------
 if "messages" not in st.session_state:
@@ -203,40 +162,25 @@ if "messages" not in st.session_state:
 
 for msg in st.session_state.messages:
     if msg["role"] == "user":
-        st.markdown(f"<div class='chat-user'>🧑 {msg['content']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='chat-user'>{msg['content']}</div>", unsafe_allow_html=True)
     else:
-        st.markdown(f"<div class='chat-bot'>🤖 {msg['content']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='chat-bot'>{msg['content']}</div>", unsafe_allow_html=True)
 
-user_input = st.chat_input("Ask anything about your data...")
+user_input = st.chat_input("Ask anything...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    context = ""
-    if data is not None:
-        context = f"Dataset:\n{data.head().to_string()}"
-
-    placeholder = st.empty()
-    full_response = ""
-
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "user", "content": context + "\n" + user_input}]
+            messages=[{"role": "user", "content": user_input}]
         )
 
         reply = response.choices[0].message.content
 
-        for word in reply.split():
-            full_response += word + " "
-            placeholder.markdown(
-                f"<div class='chat-bot'>🤖 {full_response}</div>",
-                unsafe_allow_html=True
-            )
-            time.sleep(0.02)
-
     except Exception as e:
-        full_response = f"❌ {e}"
+        reply = f"❌ {e}"
 
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+    st.session_state.messages.append({"role": "assistant", "content": reply})
     st.rerun()
