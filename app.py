@@ -2,11 +2,14 @@ import streamlit as st
 import pandas as pd
 from openai import OpenAI
 import time
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Adviso AI", layout="wide")
 
-# ---------------- PREMIUM UI ----------------
+# ---------------- UI ----------------
 st.markdown("""
 <style>
 .stApp {
@@ -30,7 +33,6 @@ st.markdown("""
     padding: 20px;
     border-radius: 15px;
     text-align: center;
-    margin-bottom: 15px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -55,132 +57,169 @@ if uploaded_file:
 # ---------------- TITLE ----------------
 st.title("💬 Adviso AI Copilot")
 
-# ---------------- AUTO INSIGHTS ----------------
+# ---------------- AI INSIGHTS ----------------
 if data is not None:
     with st.expander("🧠 AI Insights"):
         try:
-            response = client.chat.completions.create(
+            res = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": f"Analyze:\n{data.head().to_string()}"}]
             )
-            st.write(response.choices[0].message.content)
+            st.write(res.choices[0].message.content)
         except:
             st.warning("AI unavailable")
 
 # ---------------- BASIC METRICS ----------------
 if data is not None:
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Rows", data.shape[0])
-    col2.metric("Columns", data.shape[1])
-    col3.metric("Missing", data.isnull().sum().sum())
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Rows", data.shape[0])
+    c2.metric("Columns", data.shape[1])
+    c3.metric("Missing", data.isnull().sum().sum())
 
-# ---------------- ADVANCED KPI ----------------
+# ---------------- KPI ----------------
 if data is not None:
     st.markdown("## 📊 KPI Dashboard")
 
     numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
 
-    selected_metrics = st.multiselect(
-        "Select KPIs",
-        numeric_cols,
-        default=list(numeric_cols[:3])
-    )
-
+    selected = st.multiselect("Select KPIs", numeric_cols, default=list(numeric_cols[:3]))
     cols = st.columns(3)
 
-    for i, col_name in enumerate(selected_metrics):
-        values = data[col_name]
-
+    for i, col in enumerate(selected):
+        values = data[col]
         total = int(values.sum())
 
         if len(values) > 2:
             change = values.iloc[-1] - values.iloc[-2]
-
-            if change > 0:
-                trend = "↑"
-                color = "#22c55e"
-            elif change < 0:
-                trend = "↓"
-                color = "#ef4444"
-            else:
-                trend = "→"
-                color = "#9ca3af"
+            color = "#22c55e" if change > 0 else "#ef4444"
+            arrow = "↑" if change > 0 else "↓"
         else:
-            trend = "-"
             color = "#9ca3af"
+            arrow = "-"
 
         with cols[i % 3]:
             st.markdown(f"""
             <div class="kpi-card">
-                <h4>{col_name}</h4>
+                <h4>{col}</h4>
                 <h1>{total:,}</h1>
-                <p style="color:{color}">{trend}</p>
+                <p style="color:{color}">{arrow}</p>
             </div>
             """, unsafe_allow_html=True)
 
-# ---------------- ADVANCED DASHBOARD ----------------
+# ---------------- DASHBOARD ----------------
 if data is not None:
     st.markdown("## 📊 Advanced Dashboard")
 
     df = data.copy()
-
-    numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
-    categorical_cols = df.select_dtypes(include=['object']).columns
+    num_cols = df.select_dtypes(include=['int64', 'float64']).columns
+    cat_cols = df.select_dtypes(include=['object']).columns
 
     st.sidebar.markdown("### 🔍 Filters")
 
-    if len(categorical_cols) > 0:
-        cat = st.sidebar.selectbox("Category", categorical_cols)
+    if len(cat_cols) > 0:
+        cat = st.sidebar.selectbox("Category", cat_cols)
         vals = st.sidebar.multiselect("Values", df[cat].unique())
         if vals:
             df = df[df[cat].isin(vals)]
 
-    if len(numeric_cols) > 0:
-        num = st.sidebar.selectbox("Numeric", numeric_cols)
+    if len(num_cols) > 0:
+        num = st.sidebar.selectbox("Numeric", num_cols)
         min_val, max_val = st.sidebar.slider(
             "Range",
-            float(df[num].min()),
-            float(df[num].max()),
+            float(df[num].min()), float(df[num].max()),
             (float(df[num].min()), float(df[num].max()))
         )
         df = df[(df[num] >= min_val) & (df[num] <= max_val)]
 
-    # Charts
-    c1, c2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
-    with c1:
-        if len(numeric_cols) > 0:
-            st.line_chart(df[numeric_cols[0]])
+    with col1:
+        if len(num_cols) > 0:
+            st.line_chart(df[num_cols[0]])
 
-    with c2:
-        if len(numeric_cols) > 1:
-            st.bar_chart(df[numeric_cols[:2]])
+    with col2:
+        if len(num_cols) > 1:
+            st.bar_chart(df[num_cols[:2]])
+
+# ---------------- CHARTS + ML ----------------
+if data is not None:
+    st.markdown("## 📊 Advanced Charts & ML")
+
+    chart = st.selectbox("Chart Type",
+        ["Bar", "Line", "Histogram", "Pie", "Linear Regression", "Logistic Regression"]
+    )
+
+    num_cols = data.select_dtypes(include=['int64', 'float64']).columns
+    cat_cols = data.select_dtypes(include=['object']).columns
+
+    if chart == "Bar":
+        x, y = st.selectbox("X", num_cols), st.selectbox("Y", num_cols)
+        st.bar_chart(data[[x, y]])
+
+    elif chart == "Line":
+        x, y = st.selectbox("X", num_cols), st.selectbox("Y", num_cols)
+        st.line_chart(data[[x, y]])
+
+    elif chart == "Histogram":
+        col = st.selectbox("Column", num_cols)
+        fig, ax = plt.subplots()
+        ax.hist(data[col], bins=20)
+        st.pyplot(fig)
+
+    elif chart == "Pie":
+        if len(cat_cols) > 0:
+            col = st.selectbox("Category", cat_cols)
+            counts = data[col].value_counts()
+            fig, ax = plt.subplots()
+            ax.pie(counts, labels=counts.index, autopct='%1.1f%%')
+            st.pyplot(fig)
+
+    elif chart == "Linear Regression":
+        x_col = st.selectbox("X", num_cols)
+        y_col = st.selectbox("Y", num_cols)
+
+        x = data[x_col]
+        y = data[y_col]
+
+        coeffs = np.polyfit(x, y, 1)
+        line = np.poly1d(coeffs)
+
+        fig, ax = plt.subplots()
+        ax.scatter(x, y)
+        ax.plot(x, line(x))
+        st.pyplot(fig)
+
+    elif chart == "Logistic Regression":
+        if len(num_cols) >= 2:
+            X = data[[num_cols[0]]]
+            y = (data[num_cols[1]] > data[num_cols[1]].median()).astype(int)
+
+            model = LogisticRegression()
+            model.fit(X, y)
+
+            st.success("Model trained")
+            st.write(model.predict(X[:10]))
 
 # ---------------- CHAT ----------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 for msg in st.session_state.messages:
-    if msg["role"] == "user":
-        st.markdown(f"<div class='chat-user'>{msg['content']}</div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div class='chat-bot'>{msg['content']}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='chat-{msg['role']}'>{msg['content']}</div>", unsafe_allow_html=True)
 
-user_input = st.chat_input("Ask anything...")
+user = st.chat_input("Ask anything...")
 
-if user_input:
-    st.session_state.messages.append({"role": "user", "content": user_input})
+if user:
+    st.session_state.messages.append({"role": "user", "content": user})
 
     try:
-        response = client.chat.completions.create(
+        res = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "user", "content": user_input}]
+            messages=[{"role": "user", "content": user}]
         )
-
-        reply = response.choices[0].message.content
-
+        reply = res.choices[0].message.content
     except Exception as e:
-        reply = f"❌ {e}"
+        reply = str(e)
 
     st.session_state.messages.append({"role": "assistant", "content": reply})
     st.rerun()
