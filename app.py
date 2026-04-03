@@ -129,3 +129,93 @@ if user_input:
             st.line_chart(data[numeric_cols[:2]])
 
     st.rerun()
+# ---------------- VISUALIZATION ----------------
+if data is not None:
+    st.subheader("📊 Data Visualization")
+
+    numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
+
+    if len(numeric_cols) >= 2:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            x_axis = st.selectbox("Select X-axis", numeric_cols)
+
+        with col2:
+            y_axis = st.selectbox("Select Y-axis", numeric_cols)
+
+        st.line_chart(data[[x_axis, y_axis]])
+
+    else:
+        st.warning("Not enough numeric columns for visualization")
+        # Chart after response
+if data is not None:
+    numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
+
+    if len(numeric_cols) >= 2:
+        st.markdown("### 📊 Quick Insights Chart")
+        st.bar_chart(data[numeric_cols[:2]])
+        If you want, I can add:
+
+🤖 “Auto Dashboard Generator”
+
+→ AI creates charts automatically
+
+📄 “Download Report (PDF)”
+
+→ Users export insights
+
+📊 KPI cards (Revenue, Profit, etc.)
+# ---------------- AUTO DASHBOARD ----------------
+if data is not None:
+    st.markdown("## 🤖 Auto Dashboard (AI Generated)")
+
+    if st.button("Generate Smart Dashboard"):
+        try:
+            numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
+
+            if len(numeric_cols) >= 2:
+                # Simple smart picks
+                col_x = numeric_cols[0]
+                col_y = numeric_cols[1]
+
+                st.success(f"Showing insights for: {col_x} vs {col_y}")
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.write("📈 Trend Analysis")
+                    st.line_chart(data[[col_x, col_y]])
+
+                with col2:
+                    st.write("📊 Comparison")
+                    st.bar_chart(data[[col_x, col_y]])
+
+                # Correlation
+                st.write("🔗 Correlation Matrix")
+                st.dataframe(data[numeric_cols].corr())
+
+            else:
+                st.warning("Not enough numeric data")
+
+        except Exception as e:
+            st.error(e)'
+            # ---------------- KPI CARDS ----------------
+if data is not None:
+    st.markdown("## 📊 Key Metrics")
+
+    numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
+
+    if len(numeric_cols) >= 1:
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric("Total", int(data[numeric_cols[0]].sum()))
+
+        if len(numeric_cols) > 1:
+            with col2:
+                st.metric("Average", round(data[numeric_cols[1]].mean(), 2))
+
+        if len(numeric_cols) > 2:
+            with col3:
+                st.metric("Max", int(data[numeric_cols[2]].max()))
