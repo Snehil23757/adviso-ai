@@ -3,3 +3,6 @@ pandas
 openai>=1.0.0
 openpyxl
 reportlab
+scikit-learn
+matplotlib
+numpy
