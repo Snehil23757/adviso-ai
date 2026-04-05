@@ -11,35 +11,85 @@ import time
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Adviso AI", layout="wide")
 
-# ---------------- LOADING SCREEN ----------------
+# ---------------- LOADING ----------------
 if "loaded" not in st.session_state:
     with st.spinner("🚀 Loading Adviso AI..."):
         time.sleep(1.5)
     st.session_state.loaded = True
 
-# ---------------- ULTRA UI ----------------
+# ---------------- ULTRA UI + WHITE FONT FIX ----------------
 st.markdown("""
 <style>
-.stApp {background: radial-gradient(circle at top, #0f172a, #020617); color:#e2e8f0;}
-.block-container {padding:2rem 4rem; max-width:1400px; margin:auto;}
-.title {
-    font-size:52px; font-weight:900; text-align:center;
-    background: linear-gradient(90deg,#38bdf8,#6366f1,#22c55e);
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+
+/* FORCE WHITE TEXT EVERYWHERE */
+html, body, [class*="css"] {
+    color: #ffffff !important;
 }
-.subtitle {text-align:center; color:#94a3b8; margin-bottom:40px;}
+
+/* Background */
+.stApp {
+    background: radial-gradient(circle at top, #0f172a, #020617);
+    color: #ffffff !important;
+}
+
+/* Container */
+.block-container {
+    padding: 2rem 4rem;
+    max-width: 1400px;
+    margin: auto;
+}
+
+/* Title */
+.title {
+    font-size: 52px;
+    font-weight: 900;
+    text-align: center;
+    background: linear-gradient(90deg, #38bdf8, #6366f1, #22c55e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Subtitle */
+.subtitle {
+    text-align: center;
+    color: #e2e8f0 !important;
+    margin-bottom: 40px;
+}
+
+/* Cards */
 .card {
     background: rgba(255,255,255,0.05);
-    padding:25px; border-radius:20px;
-    backdrop-filter:blur(15px);
-    border:1px solid rgba(255,255,255,0.08);
-    box-shadow:0 0 30px rgba(59,130,246,0.2);
+    padding: 25px;
+    border-radius: 20px;
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 0 30px rgba(59,130,246,0.2);
+    color: #ffffff !important;
 }
+
+/* Sidebar */
+section[data-testid="stSidebar"] * {
+    color: #ffffff !important;
+}
+
+/* Inputs */
+input, textarea {
+    color: #ffffff !important;
+    background-color: rgba(255,255,255,0.05) !important;
+}
+
+/* Tabs */
+button[data-baseweb="tab"] {
+    color: #ffffff !important;
+}
+
+/* Buttons */
 .stButton>button {
-    border-radius:12px;
-    background:linear-gradient(90deg,#6366f1,#3b82f6);
-    color:white;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #6366f1, #3b82f6);
+    color: white !important;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -84,7 +134,7 @@ if not st.session_state.premium:
     if st.sidebar.button("Upgrade ₹199"):
         st.session_state.premium = True
 else:
-    st.sidebar.success("Premium User")
+    st.sidebar.success("💎 Premium User")
 
 # ---------------- HEADER ----------------
 st.markdown("<div class='title'>Adviso AI</div>", unsafe_allow_html=True)
@@ -122,7 +172,7 @@ if file:
         c2.markdown(f"<div class='card'>📁<h2>{data.shape[1]}</h2>Columns</div>", unsafe_allow_html=True)
         c3.markdown(f"<div class='card'>⚠️<h2>{data.isnull().sum().sum()}</h2>Missing</div>", unsafe_allow_html=True)
 
-    # ---------- CHARTS (PLOTLY + ANIMATION) ----------
+    # ---------- CHARTS ----------
     with tab2:
         st.markdown("<div class='card'>", unsafe_allow_html=True)
 
