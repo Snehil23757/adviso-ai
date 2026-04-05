@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from openai import OpenAI
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+import tempfile
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Adviso AI", layout="wide")
@@ -58,11 +61,25 @@ if data is None:
     with col2:
         st.markdown("<h3 style='text-align:center;margin-top:80px;'>Upload your data to begin</h3>", unsafe_allow_html=True)
 
+# ---------------- PDF FUNCTION ----------------
+def generate_pdf(content):
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    doc = SimpleDocTemplate(temp_file.name)
+    styles = getSampleStyleSheet()
+
+    elements = []
+    for line in content.split("\n"):
+        elements.append(Paragraph(line, styles["Normal"]))
+        elements.append(Spacer(1, 10))
+
+    doc.build(elements)
+    return temp_file.name
+
 # ---------------- TABS ----------------
 if data is not None:
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(
-        ["📊 Overview", "📈 Charts", "🧠 AI Insights", "🤖 Chat", "💡 Business Ideas"]
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+        ["📊 Overview", "📈 Charts", "🧠 AI Insights", "🤖 Chat", "💡 Business Ideas", "💰 Profit"]
     )
 
     # ---------- OVERVIEW ----------
@@ -73,7 +90,6 @@ if data is not None:
         c2.metric("Columns", data.shape[1])
         c3.metric("Missing", data.isnull().sum().sum())
 
-        st.markdown("## Key Metrics")
         numeric_cols = data.select_dtypes(include=['int64','float64']).columns
         cols = st.columns(3)
 
@@ -117,7 +133,7 @@ if data is not None:
                     model="gpt-4o-mini",
                     messages=[{
                         "role": "user",
-                        "content": f"Analyze this dataset and give business insights:\n{data.head().to_string()}"
+                        "content": f"Analyze this dataset:\n{data.head().to_string()}"
                     }]
                 )
                 st.success(res.choices[0].message.content)
@@ -152,39 +168,34 @@ if data is not None:
             st.session_state.messages.append({"role":"assistant","content":reply})
             st.rerun()
 
-    # ---------- BUSINESS ENGINE ----------
+    # ---------- BUSINESS IDEAS ----------
     with tab5:
         st.markdown("## 💡 Business Recommendation Engine")
 
         col1, col2 = st.columns(2)
 
         with col1:
-            budget = st.number_input("💰 Budget (₹)", min_value=1000, step=1000)
-            risk = st.selectbox("⚠️ Risk Level", ["Low","Medium","High"])
+            budget = st.number_input("💰 Budget (₹)", min_value=1000)
+            risk = st.selectbox("Risk Level", ["Low","Medium","High"])
 
         with col2:
-            skills = st.text_area("🧠 Skills")
-            location = st.text_input("📍 Location")
+            skills = st.text_area("Skills")
+            location = st.text_input("Location")
 
-        if st.button("🚀 Get Business Ideas"):
+        if st.button("Get Business Ideas"):
 
             prompt = f"""
             You are a startup advisor.
 
-            User Profile:
-            - Budget: ₹{budget}
-            - Skills: {skills}
-            - Risk Appetite: {risk}
-            - Location: {location}
+            Budget: ₹{budget}
+            Skills: {skills}
+            Risk: {risk}
+            Location: {location}
 
-            Give 5 realistic business ideas in India.
-
-            For each idea include:
-            1. Business Name
-            2. Why it suits the user
-            3. Estimated monthly profit
-            4. Initial investment breakdown
-            5. Difficulty level
+            Suggest 5 realistic business ideas in India with:
+            - Profit
+            - Investment
+            - Difficulty
             """
 
             try:
@@ -193,8 +204,36 @@ if data is not None:
                     messages=[{"role":"user","content":prompt}]
                 )
 
-                st.success("🚀 Your Business Ideas")
-                st.write(res.choices[0].message.content)
+                output = res.choices[0].message.content
+
+                st.success(output)
+
+                if st.button("Download PDF"):
+                    pdf = generate_pdf(output)
+                    with open(pdf, "rb") as f:
+                        st.download_button("Download Report", f, file_name="report.pdf")
 
             except:
-                st.error("⚠️ AI unavailable. Check billing/API.")
+                st.error("⚠️ AI unavailable")
+
+    # ---------- PROFIT CALCULATOR ----------
+    with tab6:
+        st.markdown("## 💰 Profit Calculator")
+
+        investment = st.number_input("Investment (₹)", min_value=1000)
+        revenue = st.number_input("Monthly Revenue (₹)", min_value=0)
+        cost = st.number_input("Monthly Cost (₹)", min_value=0)
+
+        if st.button("Calculate"):
+
+            profit = revenue - cost
+
+            if profit > 0:
+                breakeven = investment / profit
+                roi = (profit * 12 / investment) * 100
+
+                st.success(f"Profit: ₹{profit}")
+                st.info(f"Break-even: {breakeven:.1f} months")
+                st.info(f"ROI: {roi:.1f}%")
+            else:
+                st.error("No profit")
