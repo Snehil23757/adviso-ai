@@ -6,3 +6,10 @@ reportlab
 scikit-learn
 matplotlib
 numpy
+streamlit
+pandas
+numpy
+matplotlib
+scikit-learn
+openai
+reportlab
