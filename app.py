@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.linear_model import LogisticRegression
 from openai import OpenAI
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
@@ -11,16 +10,73 @@ import tempfile
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Adviso AI", layout="wide")
 
-# ---------------- LANDING PAGE ----------------
+# ---------------- UI (STEP 1) ----------------
+st.markdown("""
+<style>
+.stApp {
+    background: linear-gradient(135deg, #0f172a, #020617);
+    color: #e2e8f0;
+}
+
+.block-container {
+    padding: 2rem 4rem;
+    max-width: 1400px;
+    margin: auto;
+}
+
+.title {
+    font-size: 48px;
+    font-weight: 800;
+    text-align: center;
+    background: linear-gradient(90deg, #38bdf8, #6366f1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    text-align: center;
+    color: #94a3b8;
+    margin-bottom: 40px;
+}
+
+.card {
+    background: rgba(255,255,255,0.05);
+    padding: 25px;
+    border-radius: 18px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    transition: 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+section[data-testid="stSidebar"] {
+    background: #020617;
+}
+
+.stButton>button {
+    border-radius: 10px;
+    background: linear-gradient(90deg, #6366f1, #3b82f6);
+    color: white;
+    border: none;
+    font-weight: 600;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------- LANDING ----------------
 if "visited" not in st.session_state:
     st.session_state.visited = False
 
 if not st.session_state.visited:
-    st.markdown("<h1 style='text-align:center;'>Adviso AI 🚀</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center;'>Your AI Business Advisor</p>", unsafe_allow_html=True)
+    st.markdown("<div class='title'>Adviso AI 🚀</div>", unsafe_allow_html=True)
+    st.markdown("<div class='subtitle'>AI-powered Business Intelligence Platform</div>", unsafe_allow_html=True)
 
     st.markdown("---")
-
     col1, col2, col3 = st.columns(3)
     col1.markdown("### 📊 Analyze Data")
     col2.markdown("### 💡 Business Ideas")
@@ -32,26 +88,23 @@ if not st.session_state.visited:
 
     st.stop()
 
-# ---------------- LOGIN SYSTEM ----------------
+# ---------------- LOGIN ----------------
 users = {"admin": "1234", "user": "abcd"}
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    st.title("🔐 Login to Adviso AI")
-
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    st.title("🔐 Login")
+    u = st.text_input("Username")
+    p = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if username in users and users[username] == password:
+        if u in users and users[u] == p:
             st.session_state.logged_in = True
-            st.success("Login successful")
             st.rerun()
         else:
             st.error("Invalid credentials")
-
     st.stop()
 
 # ---------------- PREMIUM ----------------
@@ -60,91 +113,81 @@ if "premium" not in st.session_state:
 
 st.sidebar.markdown("## 💎 Plan")
 
-if not st.session_state.premium:
+if st.session_state.premium:
+    st.sidebar.markdown("### 💎 Premium User")
+else:
+    st.sidebar.markdown("### 🆓 Free Plan")
     if st.sidebar.button("Upgrade ₹199"):
         st.session_state.premium = True
-        st.sidebar.success("Premium Activated 🚀")
-else:
-    st.sidebar.success("Premium User ✅")
 
-# ---------------- UI ----------------
-st.markdown("""
-<style>
-.stApp { background-color: #0a0a0a; color: #f5f5f7; }
-.block-container { padding: 2rem 3rem; max-width: 1400px; margin: auto; }
-.title { font-size: 40px; text-align: center; }
-.subtitle { text-align: center; color: #9ca3af; margin-bottom: 40px; }
-.kpi { background: #111; padding: 20px; border-radius: 16px; text-align: center; }
-</style>
-""", unsafe_allow_html=True)
-
+# ---------------- HEADER (STEP 2) ----------------
 st.markdown("<div class='title'>Adviso AI</div>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>Turning data into decisions</div>", unsafe_allow_html=True)
 st.markdown("---")
 
-# ---------------- SIDEBAR ----------------
-uploaded_file = st.sidebar.file_uploader("Upload CSV/XLSX", type=["csv", "xlsx"])
+# ---------------- FILE ----------------
+file = st.sidebar.file_uploader("Upload Data", type=["csv","xlsx"])
 
 # ---------------- OPENAI ----------------
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# ---------------- LOAD DATA ----------------
-data = None
-if uploaded_file:
-    data = pd.read_csv(uploaded_file) if uploaded_file.name.endswith(".csv") else pd.read_excel(uploaded_file)
-
 # ---------------- PDF ----------------
-def generate_pdf(content):
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    doc = SimpleDocTemplate(temp_file.name)
+def generate_pdf(text):
+    f = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    doc = SimpleDocTemplate(f.name)
     styles = getSampleStyleSheet()
 
     elements = []
-    for line in content.split("\n"):
+    for line in text.split("\n"):
         elements.append(Paragraph(line, styles["Normal"]))
-        elements.append(Spacer(1, 10))
+        elements.append(Spacer(1,10))
 
     doc.build(elements)
-    return temp_file.name
+    return f.name
 
-# ---------------- MAIN APP ----------------
-if data is None:
-    st.info("Upload your dataset to begin")
-else:
+# ---------------- MAIN ----------------
+if file:
+    data = pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file)
+
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
-        ["📊 Overview", "📈 Charts", "🧠 AI", "🤖 Chat", "💡 Ideas", "💰 Profit"]
+        ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit"]
     )
 
-    # ---------- OVERVIEW ----------
+    # ---------- OVERVIEW (STEP 3) ----------
     with tab1:
-        st.metric("Rows", data.shape[0])
-        st.metric("Columns", data.shape[1])
-        st.metric("Missing", data.isnull().sum().sum())
+        c1, c2, c3 = st.columns(3)
 
-    # ---------- CHARTS ----------
+        c1.markdown(f"<div class='card'>📊 Rows<br><h2>{data.shape[0]}</h2></div>", unsafe_allow_html=True)
+        c2.markdown(f"<div class='card'>📁 Columns<br><h2>{data.shape[1]}</h2></div>", unsafe_allow_html=True)
+        c3.markdown(f"<div class='card'>⚠️ Missing<br><h2>{data.isnull().sum().sum()}</h2></div>", unsafe_allow_html=True)
+
+    # ---------- CHARTS (STEP 4) ----------
     with tab2:
-        chart_type = st.selectbox("Chart", ["Bar", "Line", "Histogram"])
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
 
-        num_cols = data.select_dtypes(include=['int64','float64']).columns
+        chart = st.selectbox("Chart", ["Bar","Line","Histogram"])
+        num = data.select_dtypes(include=['int64','float64']).columns
 
-        if len(num_cols) > 1:
-            x = st.selectbox("X", num_cols)
-            y = st.selectbox("Y", num_cols)
+        if len(num)>1:
+            x = st.selectbox("X", num)
+            y = st.selectbox("Y", num)
 
-            if chart_type == "Bar":
+            if chart=="Bar":
                 st.bar_chart(data[[x,y]])
-            elif chart_type == "Line":
+            elif chart=="Line":
                 st.line_chart(data[[x,y]])
             else:
                 fig, ax = plt.subplots()
                 ax.hist(data[x])
                 st.pyplot(fig)
 
+        st.markdown("</div>", unsafe_allow_html=True)
+
     # ---------- AI ----------
     with tab3:
         if st.button("Generate Insights"):
             if not st.session_state.premium:
-                st.warning("Upgrade to Premium 🚀")
+                st.warning("Upgrade required 🚀")
             else:
                 res = client.chat.completions.create(
                     model="gpt-4o-mini",
@@ -152,13 +195,15 @@ else:
                 )
                 st.write(res.choices[0].message.content)
 
-    # ---------- CHAT ----------
+    # ---------- CHAT (STEP 5) ----------
     with tab4:
-        user_input = st.text_input("Ask something")
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+
+        user_input = st.text_input("Ask anything...")
 
         if user_input:
             if not st.session_state.premium:
-                st.warning("Upgrade to Premium 🚀")
+                st.warning("Upgrade required 🚀")
             else:
                 res = client.chat.completions.create(
                     model="gpt-4o-mini",
@@ -166,39 +211,39 @@ else:
                 )
                 st.write(res.choices[0].message.content)
 
-    # ---------- BUSINESS IDEAS ----------
-    with tab5:
-        budget = st.number_input("Budget ₹")
-        skills = st.text_area("Skills")
-        location = st.text_input("Location")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        if st.button("Get Ideas"):
+    # ---------- IDEAS ----------
+    with tab5:
+        budget = st.number_input("Budget")
+        skills = st.text_area("Skills")
+        loc = st.text_input("Location")
+
+        if st.button("Generate Ideas"):
             if not st.session_state.premium:
-                st.warning("Upgrade to Premium 🚀")
+                st.warning("Upgrade required 🚀")
             else:
-                prompt = f"Suggest business ideas for ₹{budget}, skills: {skills}, location: {location}"
                 res = client.chat.completions.create(
                     model="gpt-4o-mini",
-                    messages=[{"role":"user","content":prompt}]
+                    messages=[{"role":"user","content":f"Business ideas for {budget}, {skills}, {loc}"}]
                 )
+                out = res.choices[0].message.content
+                st.write(out)
 
-                output = res.choices[0].message.content
-                st.write(output)
-
-                pdf = generate_pdf(output)
-                with open(pdf, "rb") as f:
-                    st.download_button("Download Report", f, file_name="report.pdf")
+                pdf = generate_pdf(out)
+                with open(pdf,"rb") as f:
+                    st.download_button("Download PDF", f)
 
     # ---------- PROFIT ----------
     with tab6:
-        invest = st.number_input("Investment")
-        revenue = st.number_input("Revenue")
+        inv = st.number_input("Investment")
+        rev = st.number_input("Revenue")
         cost = st.number_input("Cost")
 
         if st.button("Calculate"):
-            profit = revenue - cost
-            if profit > 0:
-                st.success(f"Profit: ₹{profit}")
-                st.info(f"Break-even: {invest/profit:.1f} months")
+            profit = rev - cost
+            if profit>0:
+                st.success(f"Profit ₹{profit}")
+                st.info(f"Break-even {inv/profit:.1f} months")
             else:
                 st.error("No profit")
