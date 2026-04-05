@@ -11,6 +11,10 @@ import time
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Adviso AI", layout="wide")
 
+# ---------------- AI SETUP ----------------
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+SYSTEM_PROMPT = "You are a professional business analyst. Give practical, actionable insights."
+
 # ---------------- LOADING ----------------
 if "loaded" not in st.session_state:
     with st.spinner("🚀 Loading Adviso AI..."):
@@ -20,60 +24,16 @@ if "loaded" not in st.session_state:
 # ---------------- SAFE UI FIX ----------------
 st.markdown("""
 <style>
-
-/* Background */
-.stApp {
-    background: radial-gradient(circle at top, #0f172a, #020617);
-}
-
-/* Main text */
-.block-container {
-    color: #ffffff;
-}
-
-/* Sidebar FIX */
-section[data-testid="stSidebar"] {
-    background-color: #020617;
-}
-
-section[data-testid="stSidebar"] * {
-    color: #ffffff !important;
-}
-
-/* File uploader FIX */
-[data-testid="stFileUploader"] * {
-    color: #ffffff !important;
-}
-
-/* Labels */
-label {
-    color: #e2e8f0 !important;
-}
-
-/* Inputs */
-input, textarea {
-    color: #ffffff !important;
-    background-color: rgba(255,255,255,0.05) !important;
-}
-
-/* Dropdown */
-div[data-baseweb="select"] * {
-    color: #ffffff !important;
-}
-
-/* Tabs */
-button[data-baseweb="tab"] {
-    color: #ffffff !important;
-}
-
-/* Buttons */
-.stButton>button {
-    border-radius: 12px;
-    background: linear-gradient(90deg, #6366f1, #3b82f6);
-    color: white;
-}
-
-/* Cards */
+.stApp {background: radial-gradient(circle at top, #0f172a, #020617);}
+.block-container {color: #ffffff;}
+section[data-testid="stSidebar"] {background-color: #020617;}
+section[data-testid="stSidebar"] * {color: #ffffff !important;}
+[data-testid="stFileUploader"] * {color: #ffffff !important;}
+label {color: #e2e8f0 !important;}
+input, textarea {color: #ffffff !important;background-color: rgba(255,255,255,0.05) !important;}
+div[data-baseweb="select"] * {color: #ffffff !important;}
+button[data-baseweb="tab"] {color: #ffffff !important;}
+.stButton>button {border-radius: 12px;background: linear-gradient(90deg, #6366f1, #3b82f6);color: white;}
 .card {
     background: rgba(255,255,255,0.05);
     padding: 25px;
@@ -82,7 +42,6 @@ button[data-baseweb="tab"] {
     border: 1px solid rgba(255,255,255,0.08);
     color: white;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -97,7 +56,6 @@ if not st.session_state.visited:
     if st.button("Get Started"):
         st.session_state.visited = True
         st.rerun()
-
     st.stop()
 
 # ---------------- LOGIN ----------------
@@ -117,7 +75,6 @@ if not st.session_state.logged_in:
             st.rerun()
         else:
             st.error("Invalid credentials")
-
     st.stop()
 
 # ---------------- PREMIUM ----------------
@@ -139,19 +96,15 @@ st.markdown("<p style='text-align:center;'>Turning data into decisions</p>", uns
 # ---------------- FILE ----------------
 file = st.sidebar.file_uploader("Upload Data", type=["csv","xlsx"])
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
 # ---------------- PDF ----------------
 def generate_pdf(text):
     f = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     doc = SimpleDocTemplate(f.name)
     styles = getSampleStyleSheet()
-
     elements = []
     for line in text.split("\n"):
         elements.append(Paragraph(line, styles["Normal"]))
         elements.append(Spacer(1,10))
-
     doc.build(elements)
     return f.name
 
@@ -159,21 +112,32 @@ def generate_pdf(text):
 if file:
     data = pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file)
 
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
-        ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit"]
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
+        ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit","🧠 Decision","📈 Forecast"]
     )
 
-    # ---------- OVERVIEW ----------
+    # ---------- OVERVIEW + AUTO INSIGHTS ----------
     with tab1:
         c1, c2, c3 = st.columns(3)
         c1.markdown(f"<div class='card'>Rows<br><h2>{data.shape[0]}</h2></div>", unsafe_allow_html=True)
         c2.markdown(f"<div class='card'>Columns<br><h2>{data.shape[1]}</h2></div>", unsafe_allow_html=True)
         c3.markdown(f"<div class='card'>Missing<br><h2>{data.isnull().sum().sum()}</h2></div>", unsafe_allow_html=True)
 
+        st.markdown("### 🧠 Auto Insights")
+
+        with st.spinner("Analyzing data..."):
+            res = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role":"system","content":SYSTEM_PROMPT},
+                    {"role":"user","content":data.describe().to_string()}
+                ]
+            )
+
+        st.success(res.choices[0].message.content)
+
     # ---------- CHARTS ----------
     with tab2:
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-
         chart = st.selectbox("Chart", ["Scatter","Bar","Line","Histogram"])
         num = data.select_dtypes(include=['int64','float64']).columns
 
@@ -184,18 +148,12 @@ if file:
             with st.spinner("Rendering chart..."):
                 time.sleep(1)
 
-            if chart == "Scatter":
-                fig = px.scatter(data, x=x, y=y, color=y, template="plotly_dark")
-            elif chart == "Bar":
-                fig = px.bar(data, x=x, y=y, template="plotly_dark")
-            elif chart == "Line":
-                fig = px.line(data, x=x, y=y, template="plotly_dark")
-            else:
-                fig = px.histogram(data, x=x, template="plotly_dark")
+            fig = px.scatter(data, x=x, y=y) if chart=="Scatter" else \
+                  px.bar(data, x=x, y=y) if chart=="Bar" else \
+                  px.line(data, x=x, y=y) if chart=="Line" else \
+                  px.histogram(data, x=x)
 
             st.plotly_chart(fig, use_container_width=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
 
     # ---------- AI ----------
     with tab3:
@@ -204,28 +162,29 @@ if file:
                 st.warning("Upgrade required 🚀")
             else:
                 with st.spinner("AI thinking..."):
-                    time.sleep(1.5)
                     res = client.chat.completions.create(
                         model="gpt-4o-mini",
-                        messages=[{"role":"user","content":data.head().to_string()}]
+                        messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":data.head().to_string()}]
                     )
                 st.write(res.choices[0].message.content)
 
-    # ---------- CHAT ----------
+    # ---------- CONTEXT CHAT ----------
     with tab4:
         q = st.text_input("Ask anything")
 
         if q:
-            if not st.session_state.premium:
-                st.warning("Upgrade required 🚀")
-            else:
-                with st.spinner("Thinking..."):
-                    time.sleep(1.5)
-                    res = client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=[{"role":"user","content":q}]
-                    )
-                st.write(res.choices[0].message.content)
+            context = data.head().to_string()
+
+            with st.spinner("Thinking..."):
+                res = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role":"system","content":SYSTEM_PROMPT},
+                        {"role":"user","content":f"{context}\n\nQuestion:{q}"}
+                    ]
+                )
+
+            st.write(res.choices[0].message.content)
 
     # ---------- IDEAS ----------
     with tab5:
@@ -234,19 +193,16 @@ if file:
         l = st.text_input("Location")
 
         if st.button("Generate Ideas"):
-            if not st.session_state.premium:
-                st.warning("Upgrade required 🚀")
-            else:
-                res = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[{"role":"user","content":f"{b},{s},{l}"}]
-                )
-                out = res.choices[0].message.content
-                st.write(out)
+            res = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":f"{b},{s},{l}"}]
+            )
+            out = res.choices[0].message.content
+            st.write(out)
 
-                pdf = generate_pdf(out)
-                with open(pdf,"rb") as f:
-                    st.download_button("Download PDF", f)
+            pdf = generate_pdf(out)
+            with open(pdf,"rb") as f:
+                st.download_button("Download PDF", f)
 
     # ---------- PROFIT ----------
     with tab6:
@@ -259,5 +215,30 @@ if file:
             if profit > 0:
                 st.success(f"Profit ₹{profit}")
                 st.info(f"Break-even {inv/profit:.1f} months")
-            else:
-                st.error("No profit")
+
+    # ---------- DECISION ENGINE ----------
+    with tab7:
+        decision_q = st.text_input("Should I invest?")
+
+        if decision_q:
+            res = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":decision_q}]
+            )
+            st.success(res.choices[0].message.content)
+
+    # ---------- FORECAST ----------
+    with tab8:
+        num_cols = data.select_dtypes(include=['int64','float64']).columns
+
+        if len(num_cols) > 0:
+            col = st.selectbox("Select Column", num_cols)
+            values = data[col].dropna()
+
+            if len(values) > 2:
+                trend = values.iloc[-1] - values.iloc[0]
+
+                if trend > 0:
+                    st.success("📈 Upward trend")
+                else:
+                    st.warning("📉 Downward trend")
