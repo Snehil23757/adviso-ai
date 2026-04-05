@@ -1,20 +1,26 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 from openai import OpenAI
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 import tempfile
+import time
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Adviso AI", layout="wide")
 
-# ---------------- UI (STEP 1) ----------------
+# ---------------- LOADING SCREEN (STEP 6) ----------------
+if "loaded" not in st.session_state:
+    with st.spinner("🚀 Loading Adviso AI..."):
+        time.sleep(1.5)
+    st.session_state.loaded = True
+
+# ---------------- ULTRA PREMIUM UI (STEP 1) ----------------
 st.markdown("""
 <style>
 .stApp {
-    background: linear-gradient(135deg, #0f172a, #020617);
+    background: radial-gradient(circle at top, #0f172a, #020617);
     color: #e2e8f0;
 }
 
@@ -25,46 +31,53 @@ st.markdown("""
 }
 
 .title {
-    font-size: 48px;
-    font-weight: 800;
+    font-size: 52px;
+    font-weight: 900;
     text-align: center;
-    background: linear-gradient(90deg, #38bdf8, #6366f1);
+    background: linear-gradient(90deg, #38bdf8, #6366f1, #22c55e);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    animation: fadeIn 1.5s ease-in-out;
 }
 
 .subtitle {
     text-align: center;
     color: #94a3b8;
     margin-bottom: 40px;
+    animation: fadeIn 2s ease-in-out;
 }
 
 .card {
     background: rgba(255,255,255,0.05);
     padding: 25px;
-    border-radius: 18px;
-    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    backdrop-filter: blur(15px);
     border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    transition: 0.3s;
+    box-shadow: 0 0 30px rgba(59,130,246,0.2);
+    transition: all 0.4s ease;
 }
 
 .card:hover {
-    transform: translateY(-5px);
-}
-
-section[data-testid="stSidebar"] {
-    background: #020617;
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 0 40px rgba(99,102,241,0.6);
 }
 
 .stButton>button {
-    border-radius: 10px;
+    border-radius: 12px;
     background: linear-gradient(90deg, #6366f1, #3b82f6);
     color: white;
-    border: none;
     font-weight: 600;
 }
 
+.stButton>button:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 15px rgba(99,102,241,0.8);
+}
+
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(20px);}
+    to {opacity: 1; transform: translateY(0);}
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -76,7 +89,6 @@ if not st.session_state.visited:
     st.markdown("<div class='title'>Adviso AI 🚀</div>", unsafe_allow_html=True)
     st.markdown("<div class='subtitle'>AI-powered Business Intelligence Platform</div>", unsafe_allow_html=True)
 
-    st.markdown("---")
     col1, col2, col3 = st.columns(3)
     col1.markdown("### 📊 Analyze Data")
     col2.markdown("### 💡 Business Ideas")
@@ -89,7 +101,7 @@ if not st.session_state.visited:
     st.stop()
 
 # ---------------- LOGIN ----------------
-users = {"admin": "1234", "user": "abcd"}
+users = {"admin": "1234"}
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -105,6 +117,7 @@ if not st.session_state.logged_in:
             st.rerun()
         else:
             st.error("Invalid credentials")
+
     st.stop()
 
 # ---------------- PREMIUM ----------------
@@ -114,21 +127,18 @@ if "premium" not in st.session_state:
 st.sidebar.markdown("## 💎 Plan")
 
 if st.session_state.premium:
-    st.sidebar.markdown("### 💎 Premium User")
+    st.sidebar.success("Premium User")
 else:
-    st.sidebar.markdown("### 🆓 Free Plan")
     if st.sidebar.button("Upgrade ₹199"):
         st.session_state.premium = True
 
-# ---------------- HEADER (STEP 2) ----------------
+# ---------------- HEADER ----------------
 st.markdown("<div class='title'>Adviso AI</div>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>Turning data into decisions</div>", unsafe_allow_html=True)
-st.markdown("---")
 
 # ---------------- FILE ----------------
 file = st.sidebar.file_uploader("Upload Data", type=["csv","xlsx"])
 
-# ---------------- OPENAI ----------------
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # ---------------- PDF ----------------
@@ -136,12 +146,10 @@ def generate_pdf(text):
     f = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     doc = SimpleDocTemplate(f.name)
     styles = getSampleStyleSheet()
-
     elements = []
     for line in text.split("\n"):
         elements.append(Paragraph(line, styles["Normal"]))
         elements.append(Spacer(1,10))
-
     doc.build(elements)
     return f.name
 
@@ -153,15 +161,15 @@ if file:
         ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit"]
     )
 
-    # ---------- OVERVIEW (STEP 3) ----------
+    # ---------- OVERVIEW (STEP 5) ----------
     with tab1:
         c1, c2, c3 = st.columns(3)
 
-        c1.markdown(f"<div class='card'>📊 Rows<br><h2>{data.shape[0]}</h2></div>", unsafe_allow_html=True)
-        c2.markdown(f"<div class='card'>📁 Columns<br><h2>{data.shape[1]}</h2></div>", unsafe_allow_html=True)
-        c3.markdown(f"<div class='card'>⚠️ Missing<br><h2>{data.isnull().sum().sum()}</h2></div>", unsafe_allow_html=True)
+        c1.markdown(f"<div class='card'>📊<h2>{data.shape[0]}</h2>Rows</div>", unsafe_allow_html=True)
+        c2.markdown(f"<div class='card'>📁<h2>{data.shape[1]}</h2>Columns</div>", unsafe_allow_html=True)
+        c3.markdown(f"<div class='card'>⚠️<h2>{data.isnull().sum().sum()}</h2>Missing</div>", unsafe_allow_html=True)
 
-    # ---------- CHARTS (STEP 4) ----------
+    # ---------- CHARTS ----------
     with tab2:
         st.markdown("<div class='card'>", unsafe_allow_html=True)
 
@@ -183,19 +191,23 @@ if file:
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------- AI ----------
+    # ---------- AI (STEP 2 + 3 + 4) ----------
     with tab3:
         if st.button("Generate Insights"):
             if not st.session_state.premium:
                 st.warning("Upgrade required 🚀")
             else:
-                res = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[{"role":"user","content":data.head().to_string()}]
-                )
+                with st.spinner("🤖 AI is analyzing your data..."):
+                    time.sleep(1.5)
+                    res = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[{"role":"user","content":data.head().to_string()}]
+                    )
+                st.success("✅ Analysis Complete!")
+                st.balloons()
                 st.write(res.choices[0].message.content)
 
-    # ---------- CHAT (STEP 5) ----------
+    # ---------- CHAT ----------
     with tab4:
         st.markdown("<div class='card'>", unsafe_allow_html=True)
 
@@ -205,10 +217,13 @@ if file:
             if not st.session_state.premium:
                 st.warning("Upgrade required 🚀")
             else:
-                res = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[{"role":"user","content":user_input}]
-                )
+                with st.spinner("Thinking..."):
+                    time.sleep(1.5)
+                    res = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[{"role":"user","content":user_input}]
+                    )
+                st.success("Response ready!")
                 st.write(res.choices[0].message.content)
 
         st.markdown("</div>", unsafe_allow_html=True)
@@ -223,11 +238,14 @@ if file:
             if not st.session_state.premium:
                 st.warning("Upgrade required 🚀")
             else:
-                res = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[{"role":"user","content":f"Business ideas for {budget}, {skills}, {loc}"}]
-                )
+                with st.spinner("Generating ideas..."):
+                    time.sleep(1.5)
+                    res = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[{"role":"user","content":f"Business ideas for {budget}, {skills}, {loc}"}]
+                    )
                 out = res.choices[0].message.content
+                st.success("Ideas generated!")
                 st.write(out)
 
                 pdf = generate_pdf(out)
@@ -242,7 +260,7 @@ if file:
 
         if st.button("Calculate"):
             profit = rev - cost
-            if profit>0:
+            if profit > 0:
                 st.success(f"Profit ₹{profit}")
                 st.info(f"Break-even {inv/profit:.1f} months")
             else:
