@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import plotly.express as px
 from openai import OpenAI
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
@@ -10,73 +11,34 @@ import time
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Adviso AI", layout="wide")
 
-# ---------------- LOADING SCREEN (STEP 6) ----------------
+# ---------------- LOADING SCREEN ----------------
 if "loaded" not in st.session_state:
     with st.spinner("🚀 Loading Adviso AI..."):
         time.sleep(1.5)
     st.session_state.loaded = True
 
-# ---------------- ULTRA PREMIUM UI (STEP 1) ----------------
+# ---------------- ULTRA UI ----------------
 st.markdown("""
 <style>
-.stApp {
-    background: radial-gradient(circle at top, #0f172a, #020617);
-    color: #e2e8f0;
-}
-
-.block-container {
-    padding: 2rem 4rem;
-    max-width: 1400px;
-    margin: auto;
-}
-
+.stApp {background: radial-gradient(circle at top, #0f172a, #020617); color:#e2e8f0;}
+.block-container {padding:2rem 4rem; max-width:1400px; margin:auto;}
 .title {
-    font-size: 52px;
-    font-weight: 900;
-    text-align: center;
-    background: linear-gradient(90deg, #38bdf8, #6366f1, #22c55e);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: fadeIn 1.5s ease-in-out;
+    font-size:52px; font-weight:900; text-align:center;
+    background: linear-gradient(90deg,#38bdf8,#6366f1,#22c55e);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
 }
-
-.subtitle {
-    text-align: center;
-    color: #94a3b8;
-    margin-bottom: 40px;
-    animation: fadeIn 2s ease-in-out;
-}
-
+.subtitle {text-align:center; color:#94a3b8; margin-bottom:40px;}
 .card {
     background: rgba(255,255,255,0.05);
-    padding: 25px;
-    border-radius: 20px;
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 0 30px rgba(59,130,246,0.2);
-    transition: all 0.4s ease;
+    padding:25px; border-radius:20px;
+    backdrop-filter:blur(15px);
+    border:1px solid rgba(255,255,255,0.08);
+    box-shadow:0 0 30px rgba(59,130,246,0.2);
 }
-
-.card:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 0 40px rgba(99,102,241,0.6);
-}
-
 .stButton>button {
-    border-radius: 12px;
-    background: linear-gradient(90deg, #6366f1, #3b82f6);
-    color: white;
-    font-weight: 600;
-}
-
-.stButton>button:hover {
-    transform: scale(1.08);
-    box-shadow: 0 0 15px rgba(99,102,241,0.8);
-}
-
-@keyframes fadeIn {
-    from {opacity: 0; transform: translateY(20px);}
-    to {opacity: 1; transform: translateY(0);}
+    border-radius:12px;
+    background:linear-gradient(90deg,#6366f1,#3b82f6);
+    color:white;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -87,12 +49,7 @@ if "visited" not in st.session_state:
 
 if not st.session_state.visited:
     st.markdown("<div class='title'>Adviso AI 🚀</div>", unsafe_allow_html=True)
-    st.markdown("<div class='subtitle'>AI-powered Business Intelligence Platform</div>", unsafe_allow_html=True)
-
-    col1, col2, col3 = st.columns(3)
-    col1.markdown("### 📊 Analyze Data")
-    col2.markdown("### 💡 Business Ideas")
-    col3.markdown("### 🤖 AI Assistant")
+    st.markdown("<div class='subtitle'>AI Business Intelligence Platform</div>", unsafe_allow_html=True)
 
     if st.button("Get Started"):
         st.session_state.visited = True
@@ -117,20 +74,17 @@ if not st.session_state.logged_in:
             st.rerun()
         else:
             st.error("Invalid credentials")
-
     st.stop()
 
 # ---------------- PREMIUM ----------------
 if "premium" not in st.session_state:
     st.session_state.premium = False
 
-st.sidebar.markdown("## 💎 Plan")
-
-if st.session_state.premium:
-    st.sidebar.success("Premium User")
-else:
+if not st.session_state.premium:
     if st.sidebar.button("Upgrade ₹199"):
         st.session_state.premium = True
+else:
+    st.sidebar.success("Premium User")
 
 # ---------------- HEADER ----------------
 st.markdown("<div class='title'>Adviso AI</div>", unsafe_allow_html=True)
@@ -161,57 +115,58 @@ if file:
         ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit"]
     )
 
-    # ---------- OVERVIEW (STEP 5) ----------
+    # ---------- OVERVIEW ----------
     with tab1:
         c1, c2, c3 = st.columns(3)
-
         c1.markdown(f"<div class='card'>📊<h2>{data.shape[0]}</h2>Rows</div>", unsafe_allow_html=True)
         c2.markdown(f"<div class='card'>📁<h2>{data.shape[1]}</h2>Columns</div>", unsafe_allow_html=True)
         c3.markdown(f"<div class='card'>⚠️<h2>{data.isnull().sum().sum()}</h2>Missing</div>", unsafe_allow_html=True)
 
-    # ---------- CHARTS ----------
+    # ---------- CHARTS (PLOTLY + ANIMATION) ----------
     with tab2:
         st.markdown("<div class='card'>", unsafe_allow_html=True)
 
-        chart = st.selectbox("Chart", ["Bar","Line","Histogram"])
+        chart = st.selectbox("Chart", ["Animated Scatter","Bar","Line","Histogram"])
         num = data.select_dtypes(include=['int64','float64']).columns
 
         if len(num)>1:
             x = st.selectbox("X", num)
             y = st.selectbox("Y", num)
 
-            if chart=="Bar":
-                st.bar_chart(data[[x,y]])
-            elif chart=="Line":
-                st.line_chart(data[[x,y]])
+            with st.spinner("📊 Rendering chart..."):
+                time.sleep(1)
+
+            if chart == "Animated Scatter":
+                fig = px.scatter(data, x=x, y=y, size=y, color=y, template="plotly_dark")
+            elif chart == "Bar":
+                fig = px.bar(data, x=x, y=y, color=y, template="plotly_dark")
+            elif chart == "Line":
+                fig = px.line(data, x=x, y=y, markers=True, template="plotly_dark")
             else:
-                fig, ax = plt.subplots()
-                ax.hist(data[x])
-                st.pyplot(fig)
+                fig = px.histogram(data, x=x, template="plotly_dark")
+
+            st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------- AI (STEP 2 + 3 + 4) ----------
+    # ---------- AI ----------
     with tab3:
         if st.button("Generate Insights"):
             if not st.session_state.premium:
                 st.warning("Upgrade required 🚀")
             else:
-                with st.spinner("🤖 AI is analyzing your data..."):
+                with st.spinner("🤖 AI thinking..."):
                     time.sleep(1.5)
                     res = client.chat.completions.create(
                         model="gpt-4o-mini",
                         messages=[{"role":"user","content":data.head().to_string()}]
                     )
-                st.success("✅ Analysis Complete!")
-                st.balloons()
+                st.success("Done!")
                 st.write(res.choices[0].message.content)
 
     # ---------- CHAT ----------
     with tab4:
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-
-        user_input = st.text_input("Ask anything...")
+        user_input = st.text_input("Ask anything")
 
         if user_input:
             if not st.session_state.premium:
@@ -223,10 +178,7 @@ if file:
                         model="gpt-4o-mini",
                         messages=[{"role":"user","content":user_input}]
                     )
-                st.success("Response ready!")
                 st.write(res.choices[0].message.content)
-
-        st.markdown("</div>", unsafe_allow_html=True)
 
     # ---------- IDEAS ----------
     with tab5:
@@ -238,14 +190,13 @@ if file:
             if not st.session_state.premium:
                 st.warning("Upgrade required 🚀")
             else:
-                with st.spinner("Generating ideas..."):
+                with st.spinner("Generating..."):
                     time.sleep(1.5)
                     res = client.chat.completions.create(
                         model="gpt-4o-mini",
                         messages=[{"role":"user","content":f"Business ideas for {budget}, {skills}, {loc}"}]
                     )
                 out = res.choices[0].message.content
-                st.success("Ideas generated!")
                 st.write(out)
 
                 pdf = generate_pdf(out)
