@@ -17,65 +17,48 @@ if "loaded" not in st.session_state:
         time.sleep(1.5)
     st.session_state.loaded = True
 
-# ---------------- ULTRA UI + WHITE FONT FIX ----------------
+# ---------------- SAFE UI FIX ----------------
 st.markdown("""
 <style>
-
-/* FORCE WHITE TEXT EVERYWHERE */
-html, body, [class*="css"] {
-    color: #ffffff !important;
-}
 
 /* Background */
 .stApp {
     background: radial-gradient(circle at top, #0f172a, #020617);
-    color: #ffffff !important;
 }
 
-/* Container */
+/* Main text */
 .block-container {
-    padding: 2rem 4rem;
-    max-width: 1400px;
-    margin: auto;
+    color: #ffffff;
 }
 
-/* Title */
-.title {
-    font-size: 52px;
-    font-weight: 900;
-    text-align: center;
-    background: linear-gradient(90deg, #38bdf8, #6366f1, #22c55e);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+/* Sidebar FIX */
+section[data-testid="stSidebar"] {
+    background-color: #020617;
 }
 
-/* Subtitle */
-.subtitle {
-    text-align: center;
-    color: #e2e8f0 !important;
-    margin-bottom: 40px;
-}
-
-/* Cards */
-.card {
-    background: rgba(255,255,255,0.05);
-    padding: 25px;
-    border-radius: 20px;
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 0 30px rgba(59,130,246,0.2);
-    color: #ffffff !important;
-}
-
-/* Sidebar */
 section[data-testid="stSidebar"] * {
     color: #ffffff !important;
+}
+
+/* File uploader FIX */
+[data-testid="stFileUploader"] * {
+    color: #ffffff !important;
+}
+
+/* Labels */
+label {
+    color: #e2e8f0 !important;
 }
 
 /* Inputs */
 input, textarea {
     color: #ffffff !important;
     background-color: rgba(255,255,255,0.05) !important;
+}
+
+/* Dropdown */
+div[data-baseweb="select"] * {
+    color: #ffffff !important;
 }
 
 /* Tabs */
@@ -87,7 +70,17 @@ button[data-baseweb="tab"] {
 .stButton>button {
     border-radius: 12px;
     background: linear-gradient(90deg, #6366f1, #3b82f6);
-    color: white !important;
+    color: white;
+}
+
+/* Cards */
+.card {
+    background: rgba(255,255,255,0.05);
+    padding: 25px;
+    border-radius: 20px;
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: white;
 }
 
 </style>
@@ -98,8 +91,8 @@ if "visited" not in st.session_state:
     st.session_state.visited = False
 
 if not st.session_state.visited:
-    st.markdown("<div class='title'>Adviso AI 🚀</div>", unsafe_allow_html=True)
-    st.markdown("<div class='subtitle'>AI Business Intelligence Platform</div>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;'>Adviso AI 🚀</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center;'>AI Business Intelligence Platform</p>", unsafe_allow_html=True)
 
     if st.button("Get Started"):
         st.session_state.visited = True
@@ -124,21 +117,24 @@ if not st.session_state.logged_in:
             st.rerun()
         else:
             st.error("Invalid credentials")
+
     st.stop()
 
 # ---------------- PREMIUM ----------------
 if "premium" not in st.session_state:
     st.session_state.premium = False
 
-if not st.session_state.premium:
+st.sidebar.markdown("## 💎 Plan")
+
+if st.session_state.premium:
+    st.sidebar.success("Premium User")
+else:
     if st.sidebar.button("Upgrade ₹199"):
         st.session_state.premium = True
-else:
-    st.sidebar.success("💎 Premium User")
 
 # ---------------- HEADER ----------------
-st.markdown("<div class='title'>Adviso AI</div>", unsafe_allow_html=True)
-st.markdown("<div class='subtitle'>Turning data into decisions</div>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center;'>Adviso AI</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;'>Turning data into decisions</p>", unsafe_allow_html=True)
 
 # ---------------- FILE ----------------
 file = st.sidebar.file_uploader("Upload Data", type=["csv","xlsx"])
@@ -150,10 +146,12 @@ def generate_pdf(text):
     f = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     doc = SimpleDocTemplate(f.name)
     styles = getSampleStyleSheet()
+
     elements = []
     for line in text.split("\n"):
         elements.append(Paragraph(line, styles["Normal"]))
         elements.append(Spacer(1,10))
+
     doc.build(elements)
     return f.name
 
@@ -168,30 +166,30 @@ if file:
     # ---------- OVERVIEW ----------
     with tab1:
         c1, c2, c3 = st.columns(3)
-        c1.markdown(f"<div class='card'>📊<h2>{data.shape[0]}</h2>Rows</div>", unsafe_allow_html=True)
-        c2.markdown(f"<div class='card'>📁<h2>{data.shape[1]}</h2>Columns</div>", unsafe_allow_html=True)
-        c3.markdown(f"<div class='card'>⚠️<h2>{data.isnull().sum().sum()}</h2>Missing</div>", unsafe_allow_html=True)
+        c1.markdown(f"<div class='card'>Rows<br><h2>{data.shape[0]}</h2></div>", unsafe_allow_html=True)
+        c2.markdown(f"<div class='card'>Columns<br><h2>{data.shape[1]}</h2></div>", unsafe_allow_html=True)
+        c3.markdown(f"<div class='card'>Missing<br><h2>{data.isnull().sum().sum()}</h2></div>", unsafe_allow_html=True)
 
     # ---------- CHARTS ----------
     with tab2:
         st.markdown("<div class='card'>", unsafe_allow_html=True)
 
-        chart = st.selectbox("Chart", ["Animated Scatter","Bar","Line","Histogram"])
+        chart = st.selectbox("Chart", ["Scatter","Bar","Line","Histogram"])
         num = data.select_dtypes(include=['int64','float64']).columns
 
-        if len(num)>1:
+        if len(num) > 1:
             x = st.selectbox("X", num)
             y = st.selectbox("Y", num)
 
-            with st.spinner("📊 Rendering chart..."):
+            with st.spinner("Rendering chart..."):
                 time.sleep(1)
 
-            if chart == "Animated Scatter":
-                fig = px.scatter(data, x=x, y=y, size=y, color=y, template="plotly_dark")
+            if chart == "Scatter":
+                fig = px.scatter(data, x=x, y=y, color=y, template="plotly_dark")
             elif chart == "Bar":
-                fig = px.bar(data, x=x, y=y, color=y, template="plotly_dark")
+                fig = px.bar(data, x=x, y=y, template="plotly_dark")
             elif chart == "Line":
-                fig = px.line(data, x=x, y=y, markers=True, template="plotly_dark")
+                fig = px.line(data, x=x, y=y, template="plotly_dark")
             else:
                 fig = px.histogram(data, x=x, template="plotly_dark")
 
@@ -205,20 +203,19 @@ if file:
             if not st.session_state.premium:
                 st.warning("Upgrade required 🚀")
             else:
-                with st.spinner("🤖 AI thinking..."):
+                with st.spinner("AI thinking..."):
                     time.sleep(1.5)
                     res = client.chat.completions.create(
                         model="gpt-4o-mini",
                         messages=[{"role":"user","content":data.head().to_string()}]
                     )
-                st.success("Done!")
                 st.write(res.choices[0].message.content)
 
     # ---------- CHAT ----------
     with tab4:
-        user_input = st.text_input("Ask anything")
+        q = st.text_input("Ask anything")
 
-        if user_input:
+        if q:
             if not st.session_state.premium:
                 st.warning("Upgrade required 🚀")
             else:
@@ -226,26 +223,24 @@ if file:
                     time.sleep(1.5)
                     res = client.chat.completions.create(
                         model="gpt-4o-mini",
-                        messages=[{"role":"user","content":user_input}]
+                        messages=[{"role":"user","content":q}]
                     )
                 st.write(res.choices[0].message.content)
 
     # ---------- IDEAS ----------
     with tab5:
-        budget = st.number_input("Budget")
-        skills = st.text_area("Skills")
-        loc = st.text_input("Location")
+        b = st.number_input("Budget")
+        s = st.text_area("Skills")
+        l = st.text_input("Location")
 
         if st.button("Generate Ideas"):
             if not st.session_state.premium:
                 st.warning("Upgrade required 🚀")
             else:
-                with st.spinner("Generating..."):
-                    time.sleep(1.5)
-                    res = client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=[{"role":"user","content":f"Business ideas for {budget}, {skills}, {loc}"}]
-                    )
+                res = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{"role":"user","content":f"{b},{s},{l}"}]
+                )
                 out = res.choices[0].message.content
                 st.write(out)
 
