@@ -13,3 +13,4 @@ matplotlib
 scikit-learn
 openai
 reportlab
+plotly
