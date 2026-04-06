@@ -65,8 +65,8 @@ file = st.sidebar.file_uploader("Upload Data", type=["csv","xlsx"])
 if file:
     data = pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file)
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(
-        ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit","📈 Forecast","💰 Budget + AI","🌱 Sustainability"]
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(
+        ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit","📈 Forecast","💰 Budget + AI","🌱 Sustainability","📊 Competitor Analysis"]
     )
 
     # ---------- OVERVIEW ----------
@@ -104,34 +104,25 @@ if file:
 
         if chart_type == "Scatter":
             fig = px.scatter(data, x=x, y=y)
-
         elif chart_type == "Line":
             fig = px.line(data, x=x, y=y)
-
         elif chart_type == "Bar":
             fig = px.bar(data, x=x, y=y)
-
         elif chart_type == "Histogram":
             fig = px.histogram(data, x=x)
-
         elif chart_type == "Box":
             fig = px.box(data, x=x, y=y)
-
         elif chart_type == "Violin":
             fig = px.violin(data, x=x, y=y, box=True)
-
         elif chart_type == "Pie":
             if len(cat_cols) > 0:
                 cat = st.selectbox("Category", cat_cols)
                 fig = px.pie(data, names=cat, values=y)
-
         elif chart_type == "Area":
             fig = px.area(data, x=x, y=y)
-
         elif chart_type == "Heatmap":
             corr = data[num_cols].corr()
             fig = px.imshow(corr, text_auto=True)
-
         elif chart_type == "Density Contour":
             fig = px.density_contour(data, x=x, y=y)
 
@@ -222,5 +213,39 @@ if file:
 
             output = safe_ai([
                 {"role":"user","content":f"Budget {total_budget}, green {green_spending}. Suggest sustainability strategy"}
+            ])
+            st.success(output)
+
+    # ---------- COMPETITOR ----------
+    with tab10:
+        st.markdown("## 📊 Competitor Analysis")
+
+        your_revenue = st.number_input("Your Revenue")
+        your_price = st.number_input("Your Price")
+        your_market = st.number_input("Your Market Share (%)")
+
+        comp1 = st.text_input("Competitor 1", "Competitor A")
+        comp1_rev = st.number_input("Comp1 Revenue")
+        comp1_price = st.number_input("Comp1 Price")
+        comp1_market = st.number_input("Comp1 Market Share")
+
+        comp2 = st.text_input("Competitor 2", "Competitor B")
+        comp2_rev = st.number_input("Comp2 Revenue")
+        comp2_price = st.number_input("Comp2 Price")
+        comp2_market = st.number_input("Comp2 Market Share")
+
+        if st.button("Analyze Competition"):
+            df = pd.DataFrame({
+                "Company":["You",comp1,comp2],
+                "Revenue":[your_revenue,comp1_rev,comp2_rev],
+                "Price":[your_price,comp1_price,comp2_price],
+                "Market":[your_market,comp1_market,comp2_market]
+            })
+
+            st.plotly_chart(px.bar(df,x="Company",y="Revenue"))
+            st.plotly_chart(px.pie(df,names="Company",values="Market"))
+
+            output = safe_ai([
+                {"role":"user","content":f"My revenue {your_revenue}, competitors {comp1_rev},{comp2_rev}. Strategy?"}
             ])
             st.success(output)
