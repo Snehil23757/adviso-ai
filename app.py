@@ -21,7 +21,7 @@ def can_call():
 def safe_ai(messages):
     try:
         if not can_call():
-            return "⏳ Please wait a few seconds before next request"
+            return "⏳ Please wait a few seconds"
 
         st.session_state.last_call = time.time()
 
@@ -32,36 +32,35 @@ def safe_ai(messages):
         return res.choices[0].message.content
 
     except Exception:
-        return "⚠️ AI unavailable (rate limit / quota exceeded)"
+        return "⚠️ AI unavailable (limit reached)"
 
 # ---------------- HISTORY ----------------
 if "history" not in st.session_state:
     st.session_state.history = []
 
 def save_history(title, content):
-    st.session_state.history.append({
-        "title": title,
-        "content": content
-    })
+    st.session_state.history.append({"title": title, "content": content})
+
+# ---------------- AUTH ----------------
+if "users" not in st.session_state:
+    st.session_state.users = {"admin": "1234"}
+
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if "username" not in st.session_state:
+    st.session_state.username = ""
 
 # ---------------- UI ----------------
 st.markdown("""
 <style>
 .stApp {background: linear-gradient(135deg,#020617,#0f172a);color:#e2e8f0;}
-.block-container {padding:2rem 4rem;max-width:1400px;}
-.card {
-    background: rgba(255,255,255,0.06);
-    border-radius: 20px;
-    padding: 25px;
-    border: 1px solid rgba(255,255,255,0.1);
-}
+.block-container {padding:2rem 4rem;}
+.card {background:rgba(255,255,255,0.06);padding:20px;border-radius:15px;}
 .title {
-    font-size:48px;
-    font-weight:900;
-    text-align:center;
-    background: linear-gradient(90deg,#38bdf8,#6366f1,#22c55e);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
+    font-size:40px;font-weight:900;text-align:center;
+    background:linear-gradient(90deg,#38bdf8,#6366f1,#22c55e);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -69,16 +68,51 @@ st.markdown("""
 st.markdown("<div class='title'>🚀 Adviso AI</div>", unsafe_allow_html=True)
 
 # ---------------- SIDEBAR ----------------
-file = st.sidebar.file_uploader("Upload Data", type=["csv","xlsx"])
+st.sidebar.markdown("## 👤 Profile")
 
+if not st.session_state.logged_in:
+
+    mode = st.sidebar.radio("Login / Signup", ["Login", "Signup"])
+    username = st.sidebar.text_input("Username")
+    password = st.sidebar.text_input("Password", type="password")
+
+    if mode == "Login":
+        if st.sidebar.button("Login"):
+            if username in st.session_state.users and st.session_state.users[username] == password:
+                st.session_state.logged_in = True
+                st.session_state.username = username
+                st.success("Logged in")
+            else:
+                st.error("Invalid credentials")
+
+    else:
+        if st.sidebar.button("Create Account"):
+            st.session_state.users[username] = password
+            st.success("Account created")
+
+else:
+    st.sidebar.success(f"Welcome {st.session_state.username}")
+
+    if st.sidebar.button("Logout"):
+        st.session_state.logged_in = False
+
+# ---------------- HISTORY UI ----------------
 st.sidebar.markdown("## 📜 History")
 
 if len(st.session_state.history) == 0:
     st.sidebar.info("No history yet")
 else:
     for i, item in enumerate(reversed(st.session_state.history)):
-        if st.sidebar.button(f"{item['title']} #{i+1}"):
+        if st.sidebar.button(f"{item['title']} {i+1}"):
             st.sidebar.write(item["content"])
+
+# ---------------- BLOCK IF NOT LOGIN ----------------
+if not st.session_state.logged_in:
+    st.warning("🔐 Please login to use the app")
+    st.stop()
+
+# ---------------- FILE ----------------
+file = st.sidebar.file_uploader("Upload Data", type=["csv","xlsx"])
 
 # ---------------- MAIN ----------------
 if file:
@@ -90,61 +124,40 @@ if file:
 
     # ---------- OVERVIEW ----------
     with tab1:
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Rows", data.shape[0])
-        c2.metric("Columns", data.shape[1])
-        c3.metric("Missing", data.isnull().sum().sum())
+        st.metric("Rows", data.shape[0])
+        st.metric("Columns", data.shape[1])
 
         with st.expander("View Full Data"):
             st.dataframe(data)
 
         st.dataframe(data.head(10))
 
-    # ---------- CHART ----------
+    # ---------- CHARTS ----------
     with tab2:
-        chart_type = st.selectbox("Chart", [
-            "Scatter","Line","Bar","Histogram","Box","Violin",
-            "Pie","Area","Heatmap","Density Contour"
-        ])
-
-        num_cols = data.select_dtypes(include=['int64','float64']).columns
-        cat_cols = data.select_dtypes(include=['object']).columns
+        chart = st.selectbox("Chart", ["Scatter","Line","Bar","Histogram","Box","Pie"])
 
         x = st.selectbox("X", data.columns)
-        y = st.selectbox("Y", num_cols)
+        y = st.selectbox("Y", data.select_dtypes(include=['int64','float64']).columns)
 
-        fig = None
-
-        if chart_type == "Scatter":
-            fig = px.scatter(data, x=x, y=y)
-        elif chart_type == "Line":
-            fig = px.line(data, x=x, y=y)
-        elif chart_type == "Bar":
-            fig = px.bar(data, x=x, y=y)
-        elif chart_type == "Histogram":
-            fig = px.histogram(data, x=x)
-        elif chart_type == "Box":
-            fig = px.box(data, x=x, y=y)
-        elif chart_type == "Violin":
-            fig = px.violin(data, x=x, y=y)
-        elif chart_type == "Pie" and len(cat_cols)>0:
-            fig = px.pie(data, names=cat_cols[0], values=y)
-        elif chart_type == "Area":
-            fig = px.area(data, x=x, y=y)
-        elif chart_type == "Heatmap":
-            fig = px.imshow(data[num_cols].corr())
-        elif chart_type == "Density Contour":
-            fig = px.density_contour(data, x=x, y=y)
-
-        if fig:
-            st.plotly_chart(fig)
+        if chart == "Scatter":
+            st.plotly_chart(px.scatter(data,x=x,y=y))
+        elif chart == "Line":
+            st.plotly_chart(px.line(data,x=x,y=y))
+        elif chart == "Bar":
+            st.plotly_chart(px.bar(data,x=x,y=y))
+        elif chart == "Histogram":
+            st.plotly_chart(px.histogram(data,x=x))
+        elif chart == "Box":
+            st.plotly_chart(px.box(data,x=x,y=y))
+        elif chart == "Pie":
+            st.plotly_chart(px.pie(data,names=x,values=y))
 
     # ---------- AI ----------
     with tab3:
-        if st.button("Generate Insights"):
+        if st.button("Insights"):
             output = safe_ai([{"role":"user","content":data.head(10).to_string()}])
             st.success(output)
-            save_history("AI Insights", output)
+            save_history("AI", output)
 
     # ---------- CHAT ----------
     with tab4:
@@ -163,30 +176,24 @@ if file:
 
     # ---------- PROFIT ----------
     with tab6:
-        inv = st.number_input("Investment")
         rev = st.number_input("Revenue")
         cost = st.number_input("Cost")
-
-        if st.button("Calculate"):
+        if st.button("Calc"):
             st.success(f"Profit ₹{rev-cost}")
 
     # ---------- FORECAST ----------
     with tab7:
         col = st.selectbox("Column", data.select_dtypes(include=['int64','float64']).columns)
         values = data[col].dropna().values
-
         if len(values)>3:
-            X = np.arange(len(values)).reshape(-1,1)
-            model = LinearRegression().fit(X, values)
+            model = LinearRegression().fit(np.arange(len(values)).reshape(-1,1), values)
             pred = model.predict([[len(values)]])[0]
-
-            st.metric("Predicted", round(pred,2))
+            st.metric("Prediction", round(pred,2))
 
     # ---------- BUDGET ----------
     with tab8:
         income = st.number_input("Income")
         exp = st.number_input("Expenses")
-
         if st.button("Analyze"):
             output = safe_ai([{"role":"user","content":f"income {income}, expense {exp} advice"}])
             st.success(output)
@@ -196,18 +203,16 @@ if file:
     with tab9:
         budget = st.number_input("Total Budget")
         green = st.number_input("Green Investment")
-
         if st.button("Analyze"):
-            output = safe_ai([{"role":"user","content":f"budget {budget}, green {green} strategy"}])
+            output = safe_ai([{"role":"user","content":f"budget {budget}, green {green} sustainability"}])
             st.success(output)
             save_history("Sustainability", output)
 
     # ---------- COMPETITOR ----------
     with tab10:
-        rev = st.number_input("Your Revenue")
+        your = st.number_input("Your Revenue")
         comp = st.number_input("Competitor Revenue")
-
         if st.button("Compare"):
-            output = safe_ai([{"role":"user","content":f"my {rev}, competitor {comp}, strategy"}])
+            output = safe_ai([{"role":"user","content":f"my {your}, competitor {comp} strategy"}])
             st.success(output)
             save_history("Competitor", output)
