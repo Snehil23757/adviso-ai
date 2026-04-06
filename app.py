@@ -11,7 +11,7 @@ st.set_page_config(page_title="Adviso AI", layout="wide")
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# ---------------- RATE LIMIT FIX ----------------
+# ---------------- RATE LIMIT ----------------
 if "last_call" not in st.session_state:
     st.session_state.last_call = 0
 
@@ -33,6 +33,16 @@ def safe_ai(messages):
 
     except Exception:
         return "⚠️ AI unavailable (rate limit / quota exceeded)"
+
+# ---------------- HISTORY ----------------
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+def save_history(title, content):
+    st.session_state.history.append({
+        "title": title,
+        "content": content
+    })
 
 # ---------------- UI ----------------
 st.markdown("""
@@ -57,39 +67,42 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("<div class='title'>🚀 Adviso AI</div>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>AI Business Intelligence Platform</p>", unsafe_allow_html=True)
 
-# ---------------- FILE ----------------
+# ---------------- SIDEBAR ----------------
 file = st.sidebar.file_uploader("Upload Data", type=["csv","xlsx"])
 
+st.sidebar.markdown("## 📜 History")
+
+if len(st.session_state.history) == 0:
+    st.sidebar.info("No history yet")
+else:
+    for i, item in enumerate(reversed(st.session_state.history)):
+        if st.sidebar.button(f"{item['title']} #{i+1}"):
+            st.sidebar.write(item["content"])
+
+# ---------------- MAIN ----------------
 if file:
     data = pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file)
 
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(
-        ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit","📈 Forecast","💰 Budget + AI","🌱 Sustainability","📊 Competitor Analysis"]
+        ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit","📈 Forecast","💰 Budget","🌱 Sustainability","📊 Competitor"]
     )
 
     # ---------- OVERVIEW ----------
     with tab1:
-        st.markdown("## 📊 Dashboard Overview")
-
         c1, c2, c3 = st.columns(3)
-        c1.markdown(f"<div class='card'><h4>Rows</h4><h1>{data.shape[0]}</h1></div>", unsafe_allow_html=True)
-        c2.markdown(f"<div class='card'><h4>Columns</h4><h1>{data.shape[1]}</h1></div>", unsafe_allow_html=True)
-        c3.markdown(f"<div class='card'><h4>Missing</h4><h1>{data.isnull().sum().sum()}</h1></div>", unsafe_allow_html=True)
+        c1.metric("Rows", data.shape[0])
+        c2.metric("Columns", data.shape[1])
+        c3.metric("Missing", data.isnull().sum().sum())
 
-        st.markdown("### 📄 Dataset Preview")
-        with st.expander("Click to view full data"):
-            st.dataframe(data, use_container_width=True)
+        with st.expander("View Full Data"):
+            st.dataframe(data)
 
-        st.markdown("### ⚡ Quick View")
-        st.dataframe(data.head(10), use_container_width=True)
+        st.dataframe(data.head(10))
 
-    # ---------- CHARTS ----------
+    # ---------- CHART ----------
     with tab2:
-        st.markdown("## 📈 Advanced Charts")
-
-        chart_type = st.selectbox("Chart Type", [
+        chart_type = st.selectbox("Chart", [
             "Scatter","Line","Bar","Histogram","Box","Violin",
             "Pie","Area","Heatmap","Density Contour"
         ])
@@ -97,8 +110,8 @@ if file:
         num_cols = data.select_dtypes(include=['int64','float64']).columns
         cat_cols = data.select_dtypes(include=['object']).columns
 
-        x = st.selectbox("X Axis", data.columns)
-        y = st.selectbox("Y Axis", num_cols)
+        x = st.selectbox("X", data.columns)
+        y = st.selectbox("Y", num_cols)
 
         fig = None
 
@@ -113,40 +126,40 @@ if file:
         elif chart_type == "Box":
             fig = px.box(data, x=x, y=y)
         elif chart_type == "Violin":
-            fig = px.violin(data, x=x, y=y, box=True)
-        elif chart_type == "Pie":
-            if len(cat_cols) > 0:
-                cat = st.selectbox("Category", cat_cols)
-                fig = px.pie(data, names=cat, values=y)
+            fig = px.violin(data, x=x, y=y)
+        elif chart_type == "Pie" and len(cat_cols)>0:
+            fig = px.pie(data, names=cat_cols[0], values=y)
         elif chart_type == "Area":
             fig = px.area(data, x=x, y=y)
         elif chart_type == "Heatmap":
-            corr = data[num_cols].corr()
-            fig = px.imshow(corr, text_auto=True)
+            fig = px.imshow(data[num_cols].corr())
         elif chart_type == "Density Contour":
             fig = px.density_contour(data, x=x, y=y)
 
         if fig:
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
 
     # ---------- AI ----------
     with tab3:
         if st.button("Generate Insights"):
             output = safe_ai([{"role":"user","content":data.head(10).to_string()}])
             st.success(output)
+            save_history("AI Insights", output)
 
     # ---------- CHAT ----------
     with tab4:
-        q = st.text_input("Ask anything")
+        q = st.text_input("Ask")
         if q:
             output = safe_ai([{"role":"user","content":q}])
             st.write(output)
+            save_history("Chat", output)
 
     # ---------- IDEAS ----------
     with tab5:
-        if st.button("Generate Ideas"):
-            output = safe_ai([{"role":"user","content":"Give startup ideas"}])
+        if st.button("Ideas"):
+            output = safe_ai([{"role":"user","content":"startup ideas"}])
             st.write(output)
+            save_history("Ideas", output)
 
     # ---------- PROFIT ----------
     with tab6:
@@ -155,97 +168,46 @@ if file:
         cost = st.number_input("Cost")
 
         if st.button("Calculate"):
-            st.success(f"Profit ₹{rev - cost}")
+            st.success(f"Profit ₹{rev-cost}")
 
     # ---------- FORECAST ----------
     with tab7:
-        num_cols = data.select_dtypes(include=['int64','float64']).columns
+        col = st.selectbox("Column", data.select_dtypes(include=['int64','float64']).columns)
+        values = data[col].dropna().values
 
-        if len(num_cols) > 0:
-            col = st.selectbox("Column", num_cols)
-            values = data[col].dropna().values
+        if len(values)>3:
+            X = np.arange(len(values)).reshape(-1,1)
+            model = LinearRegression().fit(X, values)
+            pred = model.predict([[len(values)]])[0]
 
-            if len(values) > 3:
-                X = np.arange(len(values)).reshape(-1,1)
-                model = LinearRegression().fit(X, values)
-                pred = model.predict([[len(values)]])[0]
-
-                st.metric("Current", values[-1])
-                st.metric("Predicted", round(pred,2))
-
-                fig = px.line(values)
-                st.plotly_chart(fig)
+            st.metric("Predicted", round(pred,2))
 
     # ---------- BUDGET ----------
     with tab8:
         income = st.number_input("Income")
-        fixed = st.number_input("Fixed Expenses")
-        variable = st.number_input("Variable Expenses")
+        exp = st.number_input("Expenses")
 
-        if st.button("Analyze Budget"):
-            total = fixed + variable
-            savings = income - total
-
-            st.metric("Savings", savings)
-
-            output = safe_ai([
-                {"role":"user","content":f"Income {income}, Expenses {total}. Give advice"}
-            ])
+        if st.button("Analyze"):
+            output = safe_ai([{"role":"user","content":f"income {income}, expense {exp} advice"}])
             st.success(output)
+            save_history("Budget", output)
 
     # ---------- SUSTAINABILITY ----------
     with tab9:
-        total_budget = st.number_input("Total Budget", min_value=0)
-        green_spending = st.number_input("Green Investment", min_value=0)
+        budget = st.number_input("Total Budget")
+        green = st.number_input("Green Investment")
 
-        if st.button("Analyze Sustainability"):
-            percent = (green_spending/total_budget*100) if total_budget>0 else 0
-
-            st.metric("Sustainability %", f"{percent:.2f}%")
-
-            df = pd.DataFrame({
-                "Category":["Green","Other"],
-                "Value":[green_spending,total_budget-green_spending]
-            })
-
-            fig = px.pie(df, names="Category", values="Value")
-            st.plotly_chart(fig)
-
-            output = safe_ai([
-                {"role":"user","content":f"Budget {total_budget}, green {green_spending}. Suggest sustainability strategy"}
-            ])
+        if st.button("Analyze"):
+            output = safe_ai([{"role":"user","content":f"budget {budget}, green {green} strategy"}])
             st.success(output)
+            save_history("Sustainability", output)
 
     # ---------- COMPETITOR ----------
     with tab10:
-        st.markdown("## 📊 Competitor Analysis")
+        rev = st.number_input("Your Revenue")
+        comp = st.number_input("Competitor Revenue")
 
-        your_revenue = st.number_input("Your Revenue")
-        your_price = st.number_input("Your Price")
-        your_market = st.number_input("Your Market Share (%)")
-
-        comp1 = st.text_input("Competitor 1", "Competitor A")
-        comp1_rev = st.number_input("Comp1 Revenue")
-        comp1_price = st.number_input("Comp1 Price")
-        comp1_market = st.number_input("Comp1 Market Share")
-
-        comp2 = st.text_input("Competitor 2", "Competitor B")
-        comp2_rev = st.number_input("Comp2 Revenue")
-        comp2_price = st.number_input("Comp2 Price")
-        comp2_market = st.number_input("Comp2 Market Share")
-
-        if st.button("Analyze Competition"):
-            df = pd.DataFrame({
-                "Company":["You",comp1,comp2],
-                "Revenue":[your_revenue,comp1_rev,comp2_rev],
-                "Price":[your_price,comp1_price,comp2_price],
-                "Market":[your_market,comp1_market,comp2_market]
-            })
-
-            st.plotly_chart(px.bar(df,x="Company",y="Revenue"))
-            st.plotly_chart(px.pie(df,names="Company",values="Market"))
-
-            output = safe_ai([
-                {"role":"user","content":f"My revenue {your_revenue}, competitors {comp1_rev},{comp2_rev}. Strategy?"}
-            ])
+        if st.button("Compare"):
+            output = safe_ai([{"role":"user","content":f"my {rev}, competitor {comp}, strategy"}])
             st.success(output)
+            save_history("Competitor", output)
