@@ -71,10 +71,24 @@ if file:
 
     # ---------- OVERVIEW ----------
     with tab1:
+        st.markdown("## 📊 Dashboard Overview")
+
         c1, c2, c3 = st.columns(3)
-        c1.markdown(f"<div class='card'><h4>Rows</h4><h1>{data.shape[0]}</h1></div>", unsafe_allow_html=True)
-        c2.markdown(f"<div class='card'><h4>Columns</h4><h1>{data.shape[1]}</h1></div>", unsafe_allow_html=True)
-        c3.markdown(f"<div class='card'><h4>Missing</h4><h1>{data.isnull().sum().sum()}</h1></div>", unsafe_allow_html=True)
+
+        c1.markdown(f"<div class='card'><h4>📊 Rows</h4><h1>{data.shape[0]}</h1></div>", unsafe_allow_html=True)
+        c2.markdown(f"<div class='card'><h4>📁 Columns</h4><h1>{data.shape[1]}</h1></div>", unsafe_allow_html=True)
+        c3.markdown(f"<div class='card'><h4>⚠️ Missing</h4><h1>{data.isnull().sum().sum()}</h1></div>", unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # 📄 FULL DATA VIEW
+        st.markdown("### 📄 Dataset Preview")
+        with st.expander("🔍 Click to View Full Data"):
+            st.dataframe(data, use_container_width=True)
+
+        # ⚡ QUICK VIEW
+        st.markdown("### ⚡ Quick View (Top 10 Rows)")
+        st.dataframe(data.head(10), use_container_width=True)
 
     # ---------- CHART ----------
     with tab2:
