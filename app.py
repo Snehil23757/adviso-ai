@@ -222,3 +222,35 @@ if file:
                 messages=[{"role":"user","content":q}]
             )
             st.write(res.choices[0].message.content)
+            # ---------- KPI DASHBOARD ----------
+with st.tab("📊 KPI Dashboard"):
+
+    st.markdown("## 📊 KPI Tracking")
+
+    total_revenue = data["Revenue"].sum()
+    total_units = data["Units_Sold"].sum()
+    avg_price = data["Price"].mean()
+
+    # Growth (simple)
+    growth = ((data["Revenue"].iloc[-1] - data["Revenue"].iloc[0]) / data["Revenue"].iloc[0]) * 100
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    c1.metric("💰 Total Revenue", f"₹{total_revenue:,.0f}")
+    c2.metric("🚜 Units Sold", total_units)
+    c3.metric("📊 Avg Price", f"₹{avg_price:,.0f}")
+    c4.metric("📈 Growth %", f"{growth:.2f}%")
+    # ---------- KPI PREDICTION ----------
+st.markdown("## 🔮 KPI Prediction")
+
+kpi_col = st.selectbox("Select KPI to Predict", ["Revenue", "Units_Sold"])
+
+values = data[kpi_col].values
+X = np.arange(len(values)).reshape(-1,1)
+
+model = LinearRegression()
+model.fit(X, values)
+
+future = model.predict([[len(values)]])[0]
+
+st.markdown(f"### 🔮 Predicted Next {kpi_col}: ₹{round(future,2)}")
