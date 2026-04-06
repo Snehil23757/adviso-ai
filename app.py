@@ -74,52 +74,36 @@ if file:
         st.markdown("## 📊 Dashboard Overview")
 
         c1, c2, c3 = st.columns(3)
+        c1.markdown(f"<div class='card'><h4>Rows</h4><h1>{data.shape[0]}</h1></div>", unsafe_allow_html=True)
+        c2.markdown(f"<div class='card'><h4>Columns</h4><h1>{data.shape[1]}</h1></div>", unsafe_allow_html=True)
+        c3.markdown(f"<div class='card'><h4>Missing</h4><h1>{data.isnull().sum().sum()}</h1></div>", unsafe_allow_html=True)
 
-        c1.markdown(f"<div class='card'><h4>📊 Rows</h4><h1>{data.shape[0]}</h1></div>", unsafe_allow_html=True)
-        c2.markdown(f"<div class='card'><h4>📁 Columns</h4><h1>{data.shape[1]}</h1></div>", unsafe_allow_html=True)
-        c3.markdown(f"<div class='card'><h4>⚠️ Missing</h4><h1>{data.isnull().sum().sum()}</h1></div>", unsafe_allow_html=True)
-
-        st.markdown("---")
-
-        # 📄 FULL DATA VIEW
         st.markdown("### 📄 Dataset Preview")
-        with st.expander("🔍 Click to View Full Data"):
+        with st.expander("Click to view full data"):
             st.dataframe(data, use_container_width=True)
 
-        # ⚡ QUICK VIEW
-        st.markdown("### ⚡ Quick View (Top 10 Rows)")
+        st.markdown("### ⚡ Quick View")
         st.dataframe(data.head(10), use_container_width=True)
 
-    # ---------- CHART ----------
-   with tab2:
-    st.markdown("## 📈 Advanced Charts Dashboard")
+    # ---------- CHARTS ----------
+    with tab2:
+        st.markdown("## 📈 Advanced Charts")
 
-    chart_type = st.selectbox("Select Chart Type", [
-        "Scatter",
-        "Line",
-        "Bar",
-        "Histogram",
-        "Box",
-        "Violin",
-        "Pie",
-        "Area",
-        "Heatmap",
-        "Density Contour"
-    ])
+        chart_type = st.selectbox("Chart Type", [
+            "Scatter","Line","Bar","Histogram","Box","Violin",
+            "Pie","Area","Heatmap","Density Contour"
+        ])
 
-    num_cols = data.select_dtypes(include=['int64','float64']).columns
-    cat_cols = data.select_dtypes(include=['object']).columns
+        num_cols = data.select_dtypes(include=['int64','float64']).columns
+        cat_cols = data.select_dtypes(include=['object']).columns
 
-    # Common selectors
-    x = st.selectbox("X Axis", data.columns)
-    y = st.selectbox("Y Axis", num_cols)
+        x = st.selectbox("X Axis", data.columns)
+        y = st.selectbox("Y Axis", num_cols)
 
-    with st.spinner("📊 Generating chart..."):
-        time.sleep(0.8)
+        fig = None
 
-        # -------- CHART LOGIC --------
         if chart_type == "Scatter":
-            fig = px.scatter(data, x=x, y=y, color=y)
+            fig = px.scatter(data, x=x, y=y)
 
         elif chart_type == "Line":
             fig = px.line(data, x=x, y=y)
@@ -140,31 +124,24 @@ if file:
             if len(cat_cols) > 0:
                 cat = st.selectbox("Category", cat_cols)
                 fig = px.pie(data, names=cat, values=y)
-            else:
-                st.warning("No categorical columns for pie chart")
-                fig = None
 
         elif chart_type == "Area":
             fig = px.area(data, x=x, y=y)
 
         elif chart_type == "Heatmap":
             corr = data[num_cols].corr()
-            fig = px.imshow(corr, text_auto=True, title="Correlation Heatmap")
+            fig = px.imshow(corr, text_auto=True)
 
         elif chart_type == "Density Contour":
             fig = px.density_contour(data, x=x, y=y)
 
-        # -------- DISPLAY --------
         if fig:
             st.plotly_chart(fig, use_container_width=True)
 
     # ---------- AI ----------
     with tab3:
         if st.button("Generate Insights"):
-            with st.spinner("AI analyzing..."):
-                output = safe_ai([
-                    {"role":"user","content":data.head(10).to_string()}
-                ])
+            output = safe_ai([{"role":"user","content":data.head(10).to_string()}])
             st.success(output)
 
     # ---------- CHAT ----------
@@ -187,8 +164,7 @@ if file:
         cost = st.number_input("Cost")
 
         if st.button("Calculate"):
-            profit = rev - cost
-            st.success(f"Profit ₹{profit}")
+            st.success(f"Profit ₹{rev - cost}")
 
     # ---------- FORECAST ----------
     with tab7:
