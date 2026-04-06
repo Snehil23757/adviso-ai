@@ -50,8 +50,8 @@ if file:
     data = pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file)
 
     # ---------------- TABS ----------------
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(
-        ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit","📈 Forecast","💰 Budget + AI","📊 KPI Dashboard"]
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(
+        ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit","📈 Forecast","💰 Budget + AI","📊 KPI Dashboard","🌱 Sustainability"]
     )
 
     # ---------- OVERVIEW ----------
@@ -147,7 +147,6 @@ if file:
     with tab9:
         st.markdown("## 📊 KPI Dashboard")
 
-        # Safe column handling
         if all(col in data.columns for col in ["Revenue","Units_Sold","Price"]):
 
             total_revenue = data["Revenue"].sum()
@@ -163,7 +162,6 @@ if file:
             c3.metric("Avg Price", f"₹{avg_price:,.0f}")
             c4.metric("Growth %", f"{growth:.2f}%")
 
-            # Prediction
             st.markdown("## 🔮 KPI Prediction")
 
             kpi_col = st.selectbox("Select KPI", ["Revenue","Units_Sold"])
@@ -183,3 +181,47 @@ if file:
 
         else:
             st.error("Dataset must contain: Revenue, Units_Sold, Price")
+
+    # ---------- 🌱 SUSTAINABILITY ----------
+    with tab10:
+        st.markdown("## 🌱 Sustainability Dashboard")
+
+        total_budget = st.number_input("Total Business Budget (₹)", min_value=0)
+        green_spending = st.number_input("Green Investment (₹)", min_value=0)
+
+        if st.button("Analyze Sustainability"):
+
+            percent = (green_spending / total_budget * 100) if total_budget > 0 else 0
+
+            st.metric("🌿 Sustainability %", f"{percent:.2f}%")
+
+            if percent > 30:
+                st.success("✅ Strong sustainability strategy")
+            elif percent > 15:
+                st.warning("⚠️ Moderate sustainability")
+            else:
+                st.error("❌ Low sustainability focus")
+
+            df = pd.DataFrame({
+                "Category": ["Green Investment", "Other Spending"],
+                "Value": [green_spending, total_budget - green_spending]
+            })
+
+            fig = px.pie(df, names="Category", values="Value", title="Sustainability Allocation")
+            st.plotly_chart(fig, use_container_width=True)
+
+            with st.spinner("🌱 AI generating strategy..."):
+                res = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{
+                        "role":"user",
+                        "content": f"""
+                        Budget: {total_budget}
+                        Green Investment: {green_spending}
+
+                        Suggest sustainable investments and ROI benefits.
+                        """
+                    }]
+                )
+
+            st.success(res.choices[0].message.content)
