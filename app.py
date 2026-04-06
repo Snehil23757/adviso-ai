@@ -91,13 +91,72 @@ if file:
         st.dataframe(data.head(10), use_container_width=True)
 
     # ---------- CHART ----------
-    with tab2:
-        num = data.select_dtypes(include=['int64','float64']).columns
-        if len(num) > 1:
-            x = st.selectbox("X", num)
-            y = st.selectbox("Y", num)
-            fig = px.scatter(data, x=x, y=y)
-            st.plotly_chart(fig)
+   with tab2:
+    st.markdown("## 📈 Advanced Charts Dashboard")
+
+    chart_type = st.selectbox("Select Chart Type", [
+        "Scatter",
+        "Line",
+        "Bar",
+        "Histogram",
+        "Box",
+        "Violin",
+        "Pie",
+        "Area",
+        "Heatmap",
+        "Density Contour"
+    ])
+
+    num_cols = data.select_dtypes(include=['int64','float64']).columns
+    cat_cols = data.select_dtypes(include=['object']).columns
+
+    # Common selectors
+    x = st.selectbox("X Axis", data.columns)
+    y = st.selectbox("Y Axis", num_cols)
+
+    with st.spinner("📊 Generating chart..."):
+        time.sleep(0.8)
+
+        # -------- CHART LOGIC --------
+        if chart_type == "Scatter":
+            fig = px.scatter(data, x=x, y=y, color=y)
+
+        elif chart_type == "Line":
+            fig = px.line(data, x=x, y=y)
+
+        elif chart_type == "Bar":
+            fig = px.bar(data, x=x, y=y)
+
+        elif chart_type == "Histogram":
+            fig = px.histogram(data, x=x)
+
+        elif chart_type == "Box":
+            fig = px.box(data, x=x, y=y)
+
+        elif chart_type == "Violin":
+            fig = px.violin(data, x=x, y=y, box=True)
+
+        elif chart_type == "Pie":
+            if len(cat_cols) > 0:
+                cat = st.selectbox("Category", cat_cols)
+                fig = px.pie(data, names=cat, values=y)
+            else:
+                st.warning("No categorical columns for pie chart")
+                fig = None
+
+        elif chart_type == "Area":
+            fig = px.area(data, x=x, y=y)
+
+        elif chart_type == "Heatmap":
+            corr = data[num_cols].corr()
+            fig = px.imshow(corr, text_auto=True, title="Correlation Heatmap")
+
+        elif chart_type == "Density Contour":
+            fig = px.density_contour(data, x=x, y=y)
+
+        # -------- DISPLAY --------
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
 
     # ---------- AI ----------
     with tab3:
