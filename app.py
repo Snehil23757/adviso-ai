@@ -56,7 +56,6 @@ st.markdown("""
 <style>
 .stApp {background: linear-gradient(135deg,#020617,#0f172a);color:#e2e8f0;}
 .block-container {padding:2rem 4rem;}
-.card {background:rgba(255,255,255,0.06);padding:20px;border-radius:15px;}
 .title {
     font-size:40px;font-weight:900;text-align:center;
     background:linear-gradient(90deg,#38bdf8,#6366f1,#22c55e);
@@ -67,46 +66,43 @@ st.markdown("""
 
 st.markdown("<div class='title'>🚀 Adviso AI</div>", unsafe_allow_html=True)
 
-# ---------------- SIDEBAR ----------------
+# ---------------- SIDEBAR LOGIN ----------------
 st.sidebar.markdown("## 👤 Profile")
 
 if not st.session_state.logged_in:
-
     mode = st.sidebar.radio("Login / Signup", ["Login", "Signup"])
     username = st.sidebar.text_input("Username")
     password = st.sidebar.text_input("Password", type="password")
 
     if mode == "Login":
-        if st.sidebar.button("Login"):
+        if st.sidebar.button("Login", key="login_btn"):
             if username in st.session_state.users and st.session_state.users[username] == password:
                 st.session_state.logged_in = True
                 st.session_state.username = username
                 st.success("Logged in")
             else:
                 st.error("Invalid credentials")
-
     else:
-        if st.sidebar.button("Create Account"):
+        if st.sidebar.button("Signup", key="signup_btn"):
             st.session_state.users[username] = password
             st.success("Account created")
 
 else:
     st.sidebar.success(f"Welcome {st.session_state.username}")
-
-    if st.sidebar.button("Logout"):
+    if st.sidebar.button("Logout", key="logout_btn"):
         st.session_state.logged_in = False
 
-# ---------------- HISTORY UI ----------------
+# ---------------- HISTORY ----------------
 st.sidebar.markdown("## 📜 History")
 
 if len(st.session_state.history) == 0:
     st.sidebar.info("No history yet")
 else:
     for i, item in enumerate(reversed(st.session_state.history)):
-        if st.sidebar.button(f"{item['title']} {i+1}"):
+        if st.sidebar.button(f"{item['title']} {i}", key=f"hist_{i}"):
             st.sidebar.write(item["content"])
 
-# ---------------- BLOCK IF NOT LOGIN ----------------
+# ---------------- BLOCK ----------------
 if not st.session_state.logged_in:
     st.warning("🔐 Please login to use the app")
     st.stop()
@@ -134,10 +130,10 @@ if file:
 
     # ---------- CHARTS ----------
     with tab2:
-        chart = st.selectbox("Chart", ["Scatter","Line","Bar","Histogram","Box","Pie"])
+        chart = st.selectbox("Chart Type", ["Scatter","Line","Bar","Histogram","Box","Pie"])
 
-        x = st.selectbox("X", data.columns)
-        y = st.selectbox("Y", data.select_dtypes(include=['int64','float64']).columns)
+        x = st.selectbox("X Axis", data.columns)
+        y = st.selectbox("Y Axis", data.select_dtypes(include=['int64','float64']).columns)
 
         if chart == "Scatter":
             st.plotly_chart(px.scatter(data,x=x,y=y))
@@ -154,14 +150,14 @@ if file:
 
     # ---------- AI ----------
     with tab3:
-        if st.button("Insights"):
+        if st.button("Generate Insights", key="ai_btn"):
             output = safe_ai([{"role":"user","content":data.head(10).to_string()}])
             st.success(output)
             save_history("AI", output)
 
     # ---------- CHAT ----------
     with tab4:
-        q = st.text_input("Ask")
+        q = st.text_input("Ask Question")
         if q:
             output = safe_ai([{"role":"user","content":q}])
             st.write(output)
@@ -169,7 +165,7 @@ if file:
 
     # ---------- IDEAS ----------
     with tab5:
-        if st.button("Ideas"):
+        if st.button("Generate Ideas", key="ideas_btn"):
             output = safe_ai([{"role":"user","content":"startup ideas"}])
             st.write(output)
             save_history("Ideas", output)
@@ -178,13 +174,14 @@ if file:
     with tab6:
         rev = st.number_input("Revenue")
         cost = st.number_input("Cost")
-        if st.button("Calc"):
+        if st.button("Calculate Profit", key="profit_btn"):
             st.success(f"Profit ₹{rev-cost}")
 
     # ---------- FORECAST ----------
     with tab7:
         col = st.selectbox("Column", data.select_dtypes(include=['int64','float64']).columns)
         values = data[col].dropna().values
+
         if len(values)>3:
             model = LinearRegression().fit(np.arange(len(values)).reshape(-1,1), values)
             pred = model.predict([[len(values)]])[0]
@@ -194,7 +191,8 @@ if file:
     with tab8:
         income = st.number_input("Income")
         exp = st.number_input("Expenses")
-        if st.button("Analyze"):
+
+        if st.button("Analyze Budget", key="budget_btn"):
             output = safe_ai([{"role":"user","content":f"income {income}, expense {exp} advice"}])
             st.success(output)
             save_history("Budget", output)
@@ -203,7 +201,8 @@ if file:
     with tab9:
         budget = st.number_input("Total Budget")
         green = st.number_input("Green Investment")
-        if st.button("Analyze"):
+
+        if st.button("Analyze Sustainability", key="sustainability_btn"):
             output = safe_ai([{"role":"user","content":f"budget {budget}, green {green} sustainability"}])
             st.success(output)
             save_history("Sustainability", output)
@@ -212,7 +211,8 @@ if file:
     with tab10:
         your = st.number_input("Your Revenue")
         comp = st.number_input("Competitor Revenue")
-        if st.button("Compare"):
+
+        if st.button("Compare", key="competitor_btn"):
             output = safe_ai([{"role":"user","content":f"my {your}, competitor {comp} strategy"}])
             st.success(output)
             save_history("Competitor", output)
