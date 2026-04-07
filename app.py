@@ -171,11 +171,101 @@ if file:
         if q:
             st.write(safe_ai([{"role":"user","content":q}]))
 
-    # ---------- IDEAS ----------
-    with tab5:
-        st.subheader("💡 Ideas Engine")
-        if st.button("Generate Ideas"):
-            st.write(safe_ai([{"role":"user","content":"startup ideas"}]))
+      # ---------- IDEAS ----------
+with tab5:
+    st.subheader("💡 AI Business Ideation Engine")
+
+    # 🔹 Inputs
+    industry = st.text_input("Industry (e.g., Retail, Healthcare, EdTech)")
+    problem = st.text_area("Problem Statement (optional)")
+    budget = st.selectbox("Budget Level", ["Low","Medium","High"])
+    risk = st.selectbox("Risk Appetite", ["Low","Moderate","High"])
+
+    st.markdown("---")
+
+    col1, col2, col3 = st.columns(3)
+
+    # 🚀 Startup Ideas
+    if col1.button("🚀 Startup Ideas"):
+        prompt = f"""
+        Suggest 5 innovative startup ideas in {industry} industry.
+        Budget: {budget}, Risk: {risk}.
+        Problem: {problem}
+
+        Provide:
+        - Idea Name
+        - Description
+        - Revenue Model
+        - Target Customers
+        """
+        with st.spinner("Generating ideas..."):
+            out = safe_ai([{"role":"user","content":prompt}])
+            st.success(out)
+            save_history("Startup Ideas", out)
+
+    # 📈 Growth Ideas
+    if col2.button("📈 Growth Strategies"):
+        prompt = f"""
+        Suggest growth strategies for {industry}.
+        Budget: {budget}.
+        Include marketing, scaling, and digital expansion.
+        """
+        with st.spinner("Analyzing..."):
+            out = safe_ai([{"role":"user","content":prompt}])
+            st.success(out)
+            save_history("Growth Ideas", out)
+
+    # 💰 Cost Optimization
+    if col3.button("💰 Cost Optimization"):
+        prompt = f"""
+        Suggest cost reduction strategies in {industry}.
+        Focus on improving efficiency and profitability.
+        """
+        with st.spinner("Optimizing..."):
+            out = safe_ai([{"role":"user","content":prompt}])
+            st.success(out)
+            save_history("Cost Ideas", out)
+
+    st.markdown("---")
+
+    # 📊 Business Plan
+    if st.button("📊 Generate Business Plan"):
+        prompt = f"""
+        Create a structured business plan for {industry}.
+        Budget: {budget}, Risk: {risk}.
+        Problem: {problem}
+
+        Include:
+        - Executive Summary
+        - Market Analysis
+        - Revenue Model
+        - Cost Structure
+        - Growth Strategy
+        """
+        with st.spinner("Building plan..."):
+            out = safe_ai([{"role":"user","content":prompt}])
+            st.success(out)
+            save_history("Business Plan", out)
+
+    st.markdown("---")
+
+    # 🤖 Data-Based Ideas (MOST POWERFUL 🔥)
+    if st.button("🤖 Ideas from Uploaded Data"):
+        sample = data.head(10).to_string()
+
+        prompt = f"""
+        Analyze this dataset:
+        {sample}
+
+        Provide:
+        - Key insights
+        - Business opportunities
+        - Monetization strategies
+        """
+        with st.spinner("Analyzing dataset..."):
+            out = safe_ai([{"role":"user","content":prompt}])
+            st.success(out)
+            save_history("Data Ideas", out)
 
     # ---------- PROFIT ----------
     with tab6:
