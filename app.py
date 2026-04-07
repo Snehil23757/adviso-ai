@@ -267,12 +267,71 @@ with tab5:
             st.success(out)
             save_history("Data Ideas", out)
 
-    # ---------- PROFIT ----------
-    with tab6:
-        r = st.number_input("Revenue")
-        c = st.number_input("Cost")
-        if st.button("Calc"):
-            st.success(r-c)
+   # ---------- PROFIT ----------
+with tab6:
+    st.subheader("💰 Profit Analytics Dashboard")
+
+    # 🔹 Inputs
+    revenue = st.number_input("Revenue (₹)", min_value=0.0)
+    cost = st.number_input("Cost (₹)", min_value=0.0)
+
+    # 🔹 Profit Calculation
+    profit = revenue - cost
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Revenue", f"₹{revenue}")
+    col2.metric("Cost", f"₹{cost}")
+    col3.metric("Profit", f"₹{profit}")
+
+    # 🔹 Profit Margin
+    if revenue > 0:
+        margin = (profit / revenue) * 100
+        st.metric("Profit Margin %", f"{round(margin,2)}%")
+
+    st.markdown("---")
+
+    # 🔹 Break-even Analysis
+    st.subheader("📊 Break-even Analysis")
+
+    fixed_cost = st.number_input("Fixed Cost (₹)", min_value=0.0)
+    price = st.number_input("Selling Price per Unit (₹)", min_value=0.0)
+    var_cost = st.number_input("Variable Cost per Unit (₹)", min_value=0.0)
+
+    if price > var_cost:
+        breakeven = fixed_cost / (price - var_cost)
+        st.success(f"Break-even Units: {round(breakeven,2)}")
+    else:
+        st.warning("Price must be greater than Variable Cost")
+
+    st.markdown("---")
+
+    # 🔹 Profit Trend Simulation
+    st.subheader("📈 Profit Simulation")
+
+    units = st.slider("Units Sold", 1, 1000, 100)
+
+    profit_list = []
+    for u in range(1, units+1):
+        p = (price - var_cost) * u - fixed_cost
+        profit_list.append(p)
+
+    st.line_chart(profit_list)
+
+    st.markdown("---")
+
+    # 🔹 AI Profit Suggestions
+    if st.button("🤖 Improve Profit Strategy"):
+        prompt = f"""
+        Revenue: {revenue}
+        Cost: {cost}
+        Profit: {profit}
+
+        Suggest ways to improve profitability, reduce cost, and increase revenue.
+        """
+        with st.spinner("Analyzing..."):
+            output = safe_ai([{"role":"user","content":prompt}])
+            st.success(output)
+            save_history("Profit Strategy", output)
 
     # ---------- FORECAST ----------
     with tab7:
