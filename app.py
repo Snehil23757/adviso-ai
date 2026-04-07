@@ -11,7 +11,7 @@ st.set_page_config(page_title="Adviso AI", layout="wide")
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# ---------------- UI STYLE ----------------
+# ---------------- UI ----------------
 st.markdown("""
 <style>
 .stApp {background: linear-gradient(135deg,#020617,#0f172a);color:#e2e8f0;}
@@ -35,10 +35,10 @@ if "logged_in" not in st.session_state:
 if "history" not in st.session_state:
     st.session_state.history = []
 
-# ---------------- AI SAFE ----------------
 if "last_call" not in st.session_state:
     st.session_state.last_call = 0
 
+# ---------------- FUNCTIONS ----------------
 def can_call():
     return time.time() - st.session_state.last_call > 5
 
@@ -99,7 +99,7 @@ else:
 
 # ---------------- BLOCK ----------------
 if not st.session_state.logged_in:
-    st.warning("Login required")
+    st.warning("🔐 Please login")
     st.stop()
 
 # ---------------- FILE ----------------
@@ -115,19 +115,56 @@ if file:
 
     # ---------- OVERVIEW ----------
     with tab1:
-        st.metric("Rows", data.shape[0])
-        st.metric("Columns", data.shape[1])
+        st.subheader("📊 Dataset Overview")
 
+        col1, col2 = st.columns(2)
+        col1.metric("Rows", data.shape[0])
+        col2.metric("Columns", data.shape[1])
+
+        # Missing Values
+        st.subheader("🧹 Missing Values Analysis")
         missing = data.isnull().sum()
-        st.subheader("Missing Values")
-        st.dataframe(missing)
+        percent = (missing / len(data)) * 100
+
+        miss_df = pd.DataFrame({
+            "Column": missing.index,
+            "Missing": missing.values,
+            "%": percent.values
+        }).sort_values(by="Missing", ascending=False)
+
+        st.dataframe(miss_df)
+        st.metric("Total Missing", int(missing.sum()))
         st.bar_chart(missing)
+
+        # Full Data
+        with st.expander("📂 View Full Data"):
+            st.dataframe(data)
+
+        st.subheader("🔍 Preview")
+        st.dataframe(data.head(10))
+
+        # Statistical Summary
+        st.subheader("📊 Statistical Summary")
+        stats = data.describe()
+        st.dataframe(stats)
+
+        # AI Insights on Stats
+        if st.button("🤖 Generate Statistical Insights"):
+            with st.spinner("Analyzing..."):
+                output = safe_ai([{
+                    "role":"user",
+                    "content":f"Explain key insights from this dataset:\n{stats.to_string()}"
+                }])
+                st.success(output)
+                save_history("Stats Insights", output)
 
     # ---------- CHARTS ----------
     with tab2:
-        chart = st.selectbox("Chart", ["Scatter","Line","Bar","Histogram"])
-        x = st.selectbox("X", data.columns)
-        y = st.selectbox("Y", data.select_dtypes(include=['int64','float64']).columns)
+        st.subheader("📈 Smart Charts")
+
+        chart = st.selectbox("Chart Type", ["Scatter","Line","Bar","Histogram"])
+        x = st.selectbox("X Axis", data.columns)
+        y = st.selectbox("Y Axis", data.select_dtypes(include=['int64','float64']).columns)
 
         filtered = data.copy()
 
@@ -143,7 +180,9 @@ if file:
         if len(num_cols)>0:
             rc = st.selectbox("Range Filter", ["None"]+list(num_cols))
             if rc!="None":
-                r = st.slider("Range", float(data[rc].min()), float(data[rc].max()), (float(data[rc].min()), float(data[rc].max())))
+                r = st.slider("Range", float(data[rc].min()), float(data[rc].max()),
+                              (float(data[rc].min()), float(data[rc].max()))
+                )
                 filtered = filtered[(filtered[rc]>=r[0]) & (filtered[rc]<=r[1])]
 
         st.dataframe(filtered.head(20))
@@ -194,27 +233,6 @@ if file:
             m = LinearRegression().fit(np.arange(len(v)).reshape(-1,1), v)
             st.metric("Prediction", round(m.predict([[len(v)]])[0],2))
 
-    # ---------- BUDGET ----------
-    with tab8:
-        i = st.number_input("Income")
-        e = st.number_input("Expense")
-        if st.button("Analyze"):
-            st.write(safe_ai([{"role":"user","content":f"{i},{e}"}]))
-
-    # ---------- SUSTAINABILITY ----------
-    with tab9:
-        b = st.number_input("Budget")
-        g = st.number_input("Green")
-        if st.button("Check"):
-            st.write(safe_ai([{"role":"user","content":f"{b},{g}"}]))
-
-    # ---------- COMPETITOR ----------
-    with tab10:
-        y = st.number_input("Your Revenue")
-        c = st.number_input("Competitor")
-        if st.button("Compare"):
-            st.write(safe_ai([{"role":"user","content":f"{y} vs {c}"}]))
-
     # ---------- KPI ----------
     with tab11:
         col = st.selectbox("KPI Column", data.select_dtypes(include=['int64','float64']).columns)
@@ -222,15 +240,16 @@ if file:
 
         if len(k)>0:
             st.metric("Current", k[-1])
-            st.metric("Avg", np.mean(k))
+            st.metric("Average", round(np.mean(k),2))
 
             if len(k)>1 and k[-2]!=0:
-                st.metric("Growth %", round(((k[-1]-k[-2])/k[-2])*100,2))
+                growth = ((k[-1]-k[-2])/k[-2])*100
+                st.metric("Growth %", round(growth,2))
 
             st.line_chart(k)
 
             if len(k)>3:
                 m = LinearRegression().fit(np.arange(len(k)).reshape(-1,1), k)
                 pred = m.predict([[len(k)]])[0]
-                st.metric("Next", round(pred,2))
+                st.metric("Next Prediction", round(pred,2))
                 st.line_chart(np.append(k,pred))
