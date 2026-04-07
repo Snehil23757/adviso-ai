@@ -110,64 +110,45 @@ if file:
 
     # ---------- OVERVIEW ----------
     with tab1:
-        st.subheader("📊 Dataset Overview")
-        col1, col2 = st.columns(2)
-        col1.metric("Rows", data.shape[0])
-        col2.metric("Columns", data.shape[1])
+        st.metric("Rows", data.shape[0])
+        st.metric("Columns", data.shape[1])
 
-        st.subheader("🧹 Missing Values Analysis")
         missing = data.isnull().sum()
         percent = (missing / len(data)) * 100
-        miss_df = pd.DataFrame({
+
+        st.dataframe(pd.DataFrame({
             "Column": missing.index,
             "Missing": missing.values,
             "%": percent.values
-        }).sort_values(by="Missing", ascending=False)
+        }))
 
-        st.dataframe(miss_df)
-        st.metric("Total Missing", int(missing.sum()))
         st.bar_chart(missing)
 
-        with st.expander("📂 View Full Data"):
+        with st.expander("Full Data"):
             st.dataframe(data)
 
-        st.subheader("🔍 Preview")
-        st.dataframe(data.head(10))
+        st.dataframe(data.head())
 
-        st.subheader("📊 Statistical Summary")
         stats = data.describe()
         st.dataframe(stats)
 
-        if st.button("🤖 Generate Statistical Insights"):
-            output = safe_ai([{"role":"user","content":f"Explain insights:\n{stats.to_string()}"}])
-            st.success(output)
-            save_history("Stats Insights", output)
-
     # ---------- CHARTS ----------
     with tab2:
-        chart = st.selectbox("Chart Type", ["Scatter","Line","Bar","Histogram"])
-        x = st.selectbox("X Axis", data.columns)
-        y = st.selectbox("Y Axis", data.select_dtypes(include=['int64','float64']).columns)
+        chart = st.selectbox("Chart", ["Scatter","Line","Bar","Histogram"])
+        x = st.selectbox("X", data.columns)
+        y = st.selectbox("Y", data.select_dtypes(include=['int64','float64']).columns)
 
         filtered = data.copy()
 
         cat_cols = data.select_dtypes(include=['object']).columns
         if len(cat_cols)>0:
-            cat = st.selectbox("Category Filter", ["None"]+list(cat_cols))
+            cat = st.selectbox("Category", ["None"]+list(cat_cols))
             if cat!="None":
                 vals = st.multiselect("Values", data[cat].unique())
                 if vals:
                     filtered = filtered[filtered[cat].isin(vals)]
 
-        num_cols = data.select_dtypes(include=['int64','float64']).columns
-        if len(num_cols)>0:
-            rc = st.selectbox("Range Filter", ["None"]+list(num_cols))
-            if rc!="None":
-                r = st.slider("Range", float(data[rc].min()), float(data[rc].max()),
-                              (float(data[rc].min()), float(data[rc].max())))
-                filtered = filtered[(filtered[rc]>=r[0]) & (filtered[rc]<=r[1])]
-
-        st.dataframe(filtered.head(20))
+        st.dataframe(filtered.head())
 
         if chart=="Scatter":
             st.plotly_chart(px.scatter(filtered,x=x,y=y))
@@ -178,55 +159,70 @@ if file:
         else:
             st.plotly_chart(px.histogram(filtered,x=x))
 
-    # ---------- IDEAS (UPGRADED) ----------
+    # ---------- AI ----------
+    with tab3:
+        if st.button("Generate Insights"):
+            out = safe_ai([{"role":"user","content":data.head().to_string()}])
+            st.write(out)
+
+    # ---------- CHAT ----------
+    with tab4:
+        q = st.text_input("Ask")
+        if q:
+            st.write(safe_ai([{"role":"user","content":q}]))
+
+    # ---------- IDEAS ----------
     with tab5:
-        st.subheader("💡 AI Business Ideation Engine")
+        st.subheader("💡 Ideas Engine")
+        if st.button("Generate Ideas"):
+            st.write(safe_ai([{"role":"user","content":"startup ideas"}]))
 
-        industry = st.text_input("Industry")
-        problem = st.text_area("Problem Statement")
-        budget = st.selectbox("Budget", ["Low","Medium","High"])
-        risk = st.selectbox("Risk", ["Low","Moderate","High"])
+    # ---------- PROFIT ----------
+    with tab6:
+        r = st.number_input("Revenue")
+        c = st.number_input("Cost")
+        if st.button("Calc"):
+            st.success(r-c)
 
-        col1, col2, col3 = st.columns(3)
+    # ---------- FORECAST ----------
+    with tab7:
+        col = st.selectbox("Column", data.select_dtypes(include=['int64','float64']).columns)
+        v = data[col].dropna().values
+        if len(v)>3:
+            m = LinearRegression().fit(np.arange(len(v)).reshape(-1,1), v)
+            st.metric("Prediction", round(m.predict([[len(v)]])[0],2))
 
-        if col1.button("🚀 Startup Ideas"):
-            out = safe_ai([{"role":"user","content":f"Startup ideas in {industry}"}])
-            st.success(out)
-            save_history("Ideas", out)
+    # ---------- BUDGET ----------
+    with tab8:
+        i = st.number_input("Income")
+        e = st.number_input("Expense")
+        if st.button("Analyze"):
+            st.write(safe_ai([{"role":"user","content":f"{i},{e}"}]))
 
-        if col2.button("📈 Growth Ideas"):
-            out = safe_ai([{"role":"user","content":f"Growth strategies for {industry}"}])
-            st.success(out)
-            save_history("Growth", out)
+    # ---------- SUSTAINABILITY ----------
+    with tab9:
+        b = st.number_input("Budget")
+        g = st.number_input("Green")
+        if st.button("Check"):
+            st.write(safe_ai([{"role":"user","content":f"{b},{g}"}]))
 
-        if col3.button("💰 Cost Optimization"):
-            out = safe_ai([{"role":"user","content":f"Cost reduction in {industry}"}])
-            st.success(out)
-            save_history("Cost", out)
-
-        if st.button("📊 Business Plan"):
-            out = safe_ai([{"role":"user","content":f"Business plan for {industry}"}])
-            st.success(out)
-            save_history("Plan", out)
-
-        if st.button("🤖 Data Based Ideas"):
-            sample = data.head(10).to_string()
-            out = safe_ai([{"role":"user","content":f"Insights from data:\n{sample}"}])
-            st.success(out)
-            save_history("Data Ideas", out)
+    # ---------- COMPETITOR ----------
+    with tab10:
+        y = st.number_input("Your Revenue")
+        c = st.number_input("Competitor")
+        if st.button("Compare"):
+            st.write(safe_ai([{"role":"user","content":f"{y} vs {c}"}]))
 
     # ---------- KPI ----------
     with tab11:
-        col = st.selectbox("KPI Column", data.select_dtypes(include=['int64','float64']).columns)
+        col = st.selectbox("KPI", data.select_dtypes(include=['int64','float64']).columns)
         k = data[col].dropna().values
 
         if len(k)>0:
             st.metric("Current", k[-1])
-            st.metric("Average", round(np.mean(k),2))
             st.line_chart(k)
 
             if len(k)>3:
                 m = LinearRegression().fit(np.arange(len(k)).reshape(-1,1), k)
                 pred = m.predict([[len(k)]])[0]
                 st.metric("Next", round(pred,2))
-                st.line_chart(np.append(k,pred))
