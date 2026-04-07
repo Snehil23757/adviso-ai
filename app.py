@@ -842,3 +842,105 @@ with tab11:
 
     else:
         st.warning("No KPI data available")
+        # ---------- EXECUTIVE DASHBOARD ----------
+with tab12:
+    st.subheader("📊 Executive Dashboard (Power BI Style)")
+
+    # 🔹 Global Filters (Slicers)
+    st.markdown("### 🔍 Filters")
+
+    cat_cols = data.select_dtypes(include=['object']).columns.tolist()
+    num_cols = data.select_dtypes(include=['int64','float64']).columns.tolist()
+
+    filtered_data = data.copy()
+
+    # Category Filter
+    if len(cat_cols) > 0:
+        cat_filter = st.selectbox("Select Category", ["None"] + cat_cols, key="dash_cat_col")
+
+        if cat_filter != "None":
+            values = st.multiselect("Select Values", data[cat_filter].dropna().unique(), key="dash_cat_val")
+            if values:
+                filtered_data = filtered_data[filtered_data[cat_filter].isin(values)]
+
+    # Numeric Range Filter
+    if len(num_cols) > 0:
+        num_filter = st.selectbox("Select Numeric Filter", ["None"] + num_cols, key="dash_num_col")
+
+        if num_filter != "None":
+            min_val = float(data[num_filter].min())
+            max_val = float(data[num_filter].max())
+
+            r = st.slider("Select Range", min_val, max_val, (min_val, max_val), key="dash_range")
+            filtered_data = filtered_data[(filtered_data[num_filter] >= r[0]) & (filtered_data[num_filter] <= r[1])]
+
+    st.markdown("---")
+
+    # 🔹 KPI Cards
+    st.subheader("📊 Key Metrics")
+
+    if len(num_cols) >= 3:
+        c1, c2, c3 = st.columns(3)
+
+        c1.metric("Total", round(filtered_data[num_cols[0]].sum(),2))
+        c2.metric("Average", round(filtered_data[num_cols[1]].mean(),2))
+        c3.metric("Max", round(filtered_data[num_cols[2]].max(),2))
+
+    st.markdown("---")
+
+    # 🔹 Trend Chart
+    st.subheader("📈 Trend Analysis")
+
+    if len(num_cols) > 0:
+        trend_col = st.selectbox("Select Trend Column", num_cols, key="dash_trend")
+
+        st.line_chart(filtered_data[trend_col])
+
+    st.markdown("---")
+
+    # 🔹 Category Breakdown
+    st.subheader("🥧 Category Breakdown")
+
+    if len(cat_cols) > 0 and len(num_cols) > 0:
+        pie_cat = st.selectbox("Category Column", cat_cols, key="dash_pie_cat")
+        pie_val = st.selectbox("Value Column", num_cols, key="dash_pie_val")
+
+        st.plotly_chart(px.pie(filtered_data, names=pie_cat, values=pie_val))
+
+    st.markdown("---")
+
+    # 🔹 Correlation Heatmap (VERY POWERFUL 🔥)
+    st.subheader("📊 Correlation Heatmap")
+
+    if len(num_cols) > 1:
+        corr = filtered_data[num_cols].corr()
+
+        fig = px.imshow(corr, text_auto=True)
+        st.plotly_chart(fig)
+
+    st.markdown("---")
+
+    # 🔹 Data Table
+    st.subheader("📋 Data Table")
+    st.dataframe(filtered_data.head(50))
+
+    st.markdown("---")
+
+    # 🔹 AI Summary
+    if st.button("🤖 Generate Dashboard Insights", key="dash_ai_btn"):
+        sample = filtered_data.head(10).to_string()
+
+        prompt = f"""
+        Analyze this business dataset:
+        {sample}
+
+        Provide:
+        - Key insights
+        - Trends
+        - Business recommendations
+        """
+
+        with st.spinner("Analyzing dashboard..."):
+            output = safe_ai([{"role":"user","content":prompt}])
+            st.success(output)
+            save_history("Dashboard Insights", output)
