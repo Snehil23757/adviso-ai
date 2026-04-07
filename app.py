@@ -504,13 +504,101 @@ with tab8:
             st.success(output)
             save_history("Budget Advice", output)
 
-    # ---------- SUSTAINABILITY ----------
-    with tab9:
-        b = st.number_input("Budget")
-        g = st.number_input("Green")
-        if st.button("Check"):
-            st.write(safe_ai([{"role":"user","content":f"{b},{g}"}]))
+   # ---------- SUSTAINABILITY ----------
+with tab9:
+    st.subheader("🌱 Sustainability & ESG Dashboard")
 
+    # 🔹 Inputs
+    total_budget = st.number_input("Total Budget (₹)", min_value=0.0)
+    green_investment = st.number_input("Green Investment (₹)", min_value=0.0)
+
+    energy_usage = st.number_input("Energy Consumption (kWh)", min_value=0.0)
+    carbon_emission = st.number_input("Carbon Emissions (kg CO₂)", min_value=0.0)
+
+    st.markdown("---")
+
+    # 🔹 ESG Metrics
+    st.subheader("📊 ESG Metrics")
+
+    if total_budget > 0:
+        green_ratio = (green_investment / total_budget) * 100
+    else:
+        green_ratio = 0
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Green Investment %", f"{round(green_ratio,2)}%")
+    col2.metric("Energy Usage", f"{energy_usage} kWh")
+    col3.metric("Carbon Emissions", f"{carbon_emission} kg")
+
+    st.markdown("---")
+
+    # 🔹 Sustainability Score (Custom KPI)
+    st.subheader("🌍 Sustainability Score")
+
+    score = 100
+
+    if green_ratio < 20:
+        score -= 30
+    if carbon_emission > 1000:
+        score -= 30
+    if energy_usage > 5000:
+        score -= 20
+
+    st.metric("Sustainability Score", f"{score}/100")
+
+    if score > 80:
+        st.success("Excellent Sustainability Performance 🌱")
+    elif score > 50:
+        st.warning("Moderate Sustainability ⚠️")
+    else:
+        st.error("Poor Sustainability ❌")
+
+    st.markdown("---")
+
+    # 🔹 Trend Simulation
+    st.subheader("📈 Sustainability Improvement Projection")
+
+    years = st.slider("Projection Years", 1, 10, 5)
+
+    carbon_trend = [carbon_emission * (0.95 ** i) for i in range(years)]
+    energy_trend = [energy_usage * (0.97 ** i) for i in range(years)]
+
+    st.line_chart({
+        "Carbon Emissions": carbon_trend,
+        "Energy Usage": energy_trend
+    })
+
+    st.markdown("---")
+
+    # 🔹 ESG Breakdown Chart
+    st.subheader("📊 ESG Breakdown")
+
+    esg_df = pd.DataFrame({
+        "Category": ["Green Investment", "Carbon Impact", "Energy Use"],
+        "Value": [green_investment, carbon_emission, energy_usage]
+    })
+
+    st.plotly_chart(px.bar(esg_df, x="Category", y="Value"))
+
+    st.markdown("---")
+
+    # 🔹 AI Sustainability Insights
+    if st.button("🤖 Generate Sustainability Insights"):
+        prompt = f"""
+        Budget: {total_budget}
+        Green Investment: {green_investment}
+        Energy Usage: {energy_usage}
+        Carbon Emissions: {carbon_emission}
+
+        Provide:
+        - Sustainability improvements
+        - Cost-effective green strategies
+        - ESG recommendations
+        """
+        with st.spinner("Analyzing sustainability..."):
+            output = safe_ai([{"role":"user","content":prompt}])
+            st.success(output)
+            save_history("Sustainability Insights", output)
     # ---------- COMPETITOR ----------
     with tab10:
         y = st.number_input("Your Revenue")
