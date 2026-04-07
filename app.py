@@ -75,7 +75,7 @@ if not st.session_state.logged_in:
     password = st.sidebar.text_input("Password", type="password")
 
     if mode == "Login":
-        if st.sidebar.button("Login", key="login_btn"):
+        if st.sidebar.button("Login"):
             if username in st.session_state.users and st.session_state.users[username] == password:
                 st.session_state.logged_in = True
                 st.session_state.username = username
@@ -83,13 +83,13 @@ if not st.session_state.logged_in:
             else:
                 st.error("Invalid credentials")
     else:
-        if st.sidebar.button("Signup", key="signup_btn"):
+        if st.sidebar.button("Signup"):
             st.session_state.users[username] = password
             st.success("Account created")
 
 else:
     st.sidebar.success(f"Welcome {st.session_state.username}")
-    if st.sidebar.button("Logout", key="logout_btn"):
+    if st.sidebar.button("Logout"):
         st.session_state.logged_in = False
 
 # ---------------- HISTORY ----------------
@@ -99,7 +99,7 @@ if len(st.session_state.history) == 0:
     st.sidebar.info("No history yet")
 else:
     for i, item in enumerate(reversed(st.session_state.history)):
-        if st.sidebar.button(f"{item['title']} {i}", key=f"hist_{i}"):
+        if st.sidebar.button(f"{item['title']} {i}"):
             st.sidebar.write(item["content"])
 
 # ---------------- BLOCK ----------------
@@ -122,6 +122,27 @@ if file:
     with tab1:
         st.metric("Rows", data.shape[0])
         st.metric("Columns", data.shape[1])
+
+        # 🔹 Missing Values Analysis
+        st.subheader("🧹 Missing Values Analysis")
+
+        missing = data.isnull().sum()
+        missing_percent = (missing / len(data)) * 100
+
+        missing_df = pd.DataFrame({
+            "Column": missing.index,
+            "Missing Values": missing.values,
+            "Percentage (%)": missing_percent.values
+        }).sort_values(by="Missing Values", ascending=False)
+
+        st.dataframe(missing_df)
+
+        # 🔹 Total Missing
+        st.metric("Total Missing Values", int(missing.sum()))
+
+        # 🔹 Visualization
+        st.subheader("📊 Missing Values Visualization")
+        st.bar_chart(missing)
 
         with st.expander("View Full Data"):
             st.dataframe(data)
@@ -150,7 +171,7 @@ if file:
 
     # ---------- AI ----------
     with tab3:
-        if st.button("Generate Insights", key="ai_btn"):
+        if st.button("Generate Insights"):
             output = safe_ai([{"role":"user","content":data.head(10).to_string()}])
             st.success(output)
             save_history("AI", output)
@@ -165,7 +186,7 @@ if file:
 
     # ---------- IDEAS ----------
     with tab5:
-        if st.button("Generate Ideas", key="ideas_btn"):
+        if st.button("Generate Ideas"):
             output = safe_ai([{"role":"user","content":"startup ideas"}])
             st.write(output)
             save_history("Ideas", output)
@@ -174,7 +195,7 @@ if file:
     with tab6:
         rev = st.number_input("Revenue")
         cost = st.number_input("Cost")
-        if st.button("Calculate Profit", key="profit_btn"):
+        if st.button("Calculate Profit"):
             st.success(f"Profit ₹{rev-cost}")
 
     # ---------- FORECAST ----------
@@ -192,7 +213,7 @@ if file:
         income = st.number_input("Income")
         exp = st.number_input("Expenses")
 
-        if st.button("Analyze Budget", key="budget_btn"):
+        if st.button("Analyze Budget"):
             output = safe_ai([{"role":"user","content":f"income {income}, expense {exp} advice"}])
             st.success(output)
             save_history("Budget", output)
@@ -202,7 +223,7 @@ if file:
         budget = st.number_input("Total Budget")
         green = st.number_input("Green Investment")
 
-        if st.button("Analyze Sustainability", key="sustainability_btn"):
+        if st.button("Analyze Sustainability"):
             output = safe_ai([{"role":"user","content":f"budget {budget}, green {green} sustainability"}])
             st.success(output)
             save_history("Sustainability", output)
@@ -212,7 +233,7 @@ if file:
         your = st.number_input("Your Revenue")
         comp = st.number_input("Competitor Revenue")
 
-        if st.button("Compare", key="competitor_btn"):
+        if st.button("Compare"):
             output = safe_ai([{"role":"user","content":f"my {your}, competitor {comp} strategy"}])
             st.success(output)
             save_history("Competitor", output)
