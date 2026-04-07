@@ -599,16 +599,17 @@ with tab9:
             output = safe_ai([{"role":"user","content":prompt}])
             st.success(output)
             save_history("Sustainability Insights", output)
- # ---------- COMPETITOR ----------
+
+# ---------- COMPETITOR ----------
 with tab10:
     st.subheader("📊 Advanced Competitor Analysis Dashboard")
 
-    # 🔹 Inputs
-    your_rev = st.number_input("Your Revenue (₹)", min_value=0.0)
-    comp_rev = st.number_input("Competitor Revenue (₹)", min_value=0.0)
+    # 🔹 Inputs (FIX: added keys)
+    your_rev = st.number_input("Your Revenue (₹)", min_value=0.0, key="comp_rev_you")
+    comp_rev = st.number_input("Competitor Revenue (₹)", min_value=0.0, key="comp_rev_comp")
 
-    your_cost = st.number_input("Your Cost (₹)", min_value=0.0)
-    comp_cost = st.number_input("Competitor Cost (₹)", min_value=0.0)
+    your_cost = st.number_input("Your Cost (₹)", min_value=0.0, key="comp_cost_you")
+    comp_cost = st.number_input("Competitor Cost (₹)", min_value=0.0, key="comp_cost_comp")
 
     st.markdown("---")
 
@@ -620,10 +621,17 @@ with tab10:
     col1.metric("Your Profit", f"₹{your_profit}")
     col2.metric("Competitor Profit", f"₹{comp_profit}")
 
+    st.markdown("---")
+
     # 🔹 Market Share
     st.subheader("📊 Market Share Analysis")
 
     total_market = your_rev + comp_rev
+
+    # FIX: default values to avoid crash
+    your_share = 0
+    comp_share = 0
+
     if total_market > 0:
         your_share = (your_rev / total_market) * 100
         comp_share = (comp_rev / total_market) * 100
@@ -637,6 +645,9 @@ with tab10:
         })
 
         st.plotly_chart(px.pie(pie_df, names="Company", values="Revenue"))
+
+    else:
+        st.info("Enter revenue values to see market share")
 
     st.markdown("---")
 
@@ -656,10 +667,11 @@ with tab10:
     # 🔹 Growth Simulation
     st.subheader("📈 Future Growth Simulation")
 
-    years = st.slider("Projection Years", 1, 10, 5)
+    # FIX: added keys
+    years = st.slider("Projection Years", 1, 10, 5, key="comp_years")
 
-    your_growth_rate = st.slider("Your Growth % per year", 0, 50, 10)
-    comp_growth_rate = st.slider("Competitor Growth % per year", 0, 50, 8)
+    your_growth_rate = st.slider("Your Growth % per year", 0, 50, 10, key="comp_growth_you")
+    comp_growth_rate = st.slider("Competitor Growth % per year", 0, 50, 8, key="comp_growth_comp")
 
     your_future = []
     comp_future = []
@@ -703,8 +715,8 @@ with tab10:
 
     st.markdown("---")
 
-    # 🔹 AI Strategy Suggestions
-    if st.button("🤖 Get Competitive Strategy"):
+    # 🔹 AI Strategy Suggestions (FIX: key added)
+    if st.button("🤖 Get Competitive Strategy", key="comp_ai_btn"):
         prompt = f"""
         My Revenue: {your_rev}
         Competitor Revenue: {comp_rev}
