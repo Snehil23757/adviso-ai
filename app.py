@@ -114,8 +114,8 @@ file = st.sidebar.file_uploader("Upload Data", type=["csv","xlsx"])
 if file:
     data = pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file)
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(
-        ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit","📈 Forecast","💰 Budget","🌱 Sustainability","📊 Competitor"]
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(
+        ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit","📈 Forecast","💰 Budget","🌱 Sustainability","📊 Competitor","📊 KPI Dashboard"]
     )
 
     # ---------- OVERVIEW ----------
@@ -123,7 +123,6 @@ if file:
         st.metric("Rows", data.shape[0])
         st.metric("Columns", data.shape[1])
 
-        # 🔹 Missing Values Analysis
         st.subheader("🧹 Missing Values Analysis")
 
         missing = data.isnull().sum()
@@ -136,12 +135,9 @@ if file:
         }).sort_values(by="Missing Values", ascending=False)
 
         st.dataframe(missing_df)
-
-        # 🔹 Total Missing
         st.metric("Total Missing Values", int(missing.sum()))
 
-        # 🔹 Visualization
-        st.subheader("📊 Missing Values Visualization")
+        st.subheader("📊 Missing Visualization")
         st.bar_chart(missing)
 
         with st.expander("View Full Data"):
@@ -152,7 +148,6 @@ if file:
     # ---------- CHARTS ----------
     with tab2:
         chart = st.selectbox("Chart Type", ["Scatter","Line","Bar","Histogram","Box","Pie"])
-
         x = st.selectbox("X Axis", data.columns)
         y = st.selectbox("Y Axis", data.select_dtypes(include=['int64','float64']).columns)
 
@@ -208,32 +203,63 @@ if file:
             pred = model.predict([[len(values)]])[0]
             st.metric("Prediction", round(pred,2))
 
+    # ---------- KPI DASHBOARD ----------
+    with tab11:
+        st.subheader("📊 KPI Tracker & Predictor")
+
+        kpi_col = st.selectbox("Select KPI Column", data.select_dtypes(include=['int64','float64']).columns)
+        kpi_data = data[kpi_col].dropna().values
+
+        if len(kpi_data) > 0:
+            current = kpi_data[-1]
+            avg = np.mean(kpi_data)
+
+            growth = 0
+            if len(kpi_data) > 1 and kpi_data[-2] != 0:
+                growth = ((kpi_data[-1] - kpi_data[-2]) / kpi_data[-2]) * 100
+
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Current", round(current,2))
+            c2.metric("Average", round(avg,2))
+            c3.metric("Growth %", f"{round(growth,2)}%")
+
+            st.subheader("📈 Trend")
+            st.line_chart(kpi_data)
+
+            st.subheader("🔮 Prediction")
+
+            if len(kpi_data) > 3:
+                X = np.arange(len(kpi_data)).reshape(-1,1)
+                model = LinearRegression().fit(X, kpi_data)
+                next_val = model.predict([[len(kpi_data)]])[0]
+
+                st.metric("Next Value", round(next_val,2))
+
+                future = np.append(kpi_data, next_val)
+                st.line_chart(future)
+            else:
+                st.warning("Need at least 4 data points")
+
     # ---------- BUDGET ----------
     with tab8:
         income = st.number_input("Income")
         exp = st.number_input("Expenses")
-
         if st.button("Analyze Budget"):
             output = safe_ai([{"role":"user","content":f"income {income}, expense {exp} advice"}])
             st.success(output)
-            save_history("Budget", output)
 
     # ---------- SUSTAINABILITY ----------
     with tab9:
         budget = st.number_input("Total Budget")
         green = st.number_input("Green Investment")
-
         if st.button("Analyze Sustainability"):
             output = safe_ai([{"role":"user","content":f"budget {budget}, green {green} sustainability"}])
             st.success(output)
-            save_history("Sustainability", output)
 
     # ---------- COMPETITOR ----------
     with tab10:
         your = st.number_input("Your Revenue")
         comp = st.number_input("Competitor Revenue")
-
         if st.button("Compare"):
             output = safe_ai([{"role":"user","content":f"my {your}, competitor {comp} strategy"}])
             st.success(output)
-            save_history("Competitor", output)
