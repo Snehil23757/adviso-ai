@@ -406,12 +406,103 @@ with tab7:
     else:
         st.warning("Need at least 4 data points for forecasting")
 
-    # ---------- BUDGET ----------
-    with tab8:
-        i = st.number_input("Income")
-        e = st.number_input("Expense")
-        if st.button("Analyze"):
-            st.write(safe_ai([{"role":"user","content":f"{i},{e}"}]))
+   # ---------- BUDGET ----------
+with tab8:
+    st.subheader("💰 Advanced Budget Planning Dashboard")
+
+    # 🔹 Income & Expenses
+    income = st.number_input("Monthly Income (₹)", min_value=0.0)
+    expense = st.number_input("Monthly Expenses (₹)", min_value=0.0)
+
+    savings = income - expense
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Income", f"₹{income}")
+    col2.metric("Expenses", f"₹{expense}")
+    col3.metric("Savings", f"₹{savings}")
+
+    # 🔹 Savings Rate
+    if income > 0:
+        savings_rate = (savings / income) * 100
+        st.metric("Savings Rate %", f"{round(savings_rate,2)}%")
+
+    st.markdown("---")
+
+    # 🔹 Expense Breakdown
+    st.subheader("📊 Expense Breakdown")
+
+    food = st.number_input("Food", min_value=0.0)
+    rent = st.number_input("Rent", min_value=0.0)
+    travel = st.number_input("Travel", min_value=0.0)
+    others = st.number_input("Others", min_value=0.0)
+
+    expense_data = {
+        "Food": food,
+        "Rent": rent,
+        "Travel": travel,
+        "Others": others
+    }
+
+    exp_df = pd.DataFrame({
+        "Category": list(expense_data.keys()),
+        "Amount": list(expense_data.values())
+    })
+
+    st.plotly_chart(px.pie(exp_df, names="Category", values="Amount"))
+
+    st.markdown("---")
+
+    # 🔹 Budget vs Actual
+    st.subheader("📉 Budget vs Actual")
+
+    budget_limit = st.number_input("Set Monthly Budget (₹)", min_value=0.0)
+
+    if budget_limit > 0:
+        if expense > budget_limit:
+            st.error("⚠️ You are over budget!")
+        else:
+            st.success("✅ Within budget")
+
+    st.markdown("---")
+
+    # 🔹 Savings Projection
+    st.subheader("📈 Savings Projection")
+
+    months = st.slider("Projection Period (Months)", 1, 60, 12)
+
+    savings_trend = [savings * m for m in range(1, months+1)]
+
+    st.line_chart(savings_trend)
+
+    st.markdown("---")
+
+    # 🔹 Goal Planning
+    st.subheader("🎯 Financial Goal Planning")
+
+    goal = st.number_input("Target Savings Goal (₹)", min_value=0.0)
+
+    if savings > 0:
+        months_needed = goal / savings if savings != 0 else 0
+        st.info(f"Estimated Months to Reach Goal: {round(months_needed,1)}")
+
+    st.markdown("---")
+
+    # 🔹 AI Budget Advice
+    if st.button("🤖 Get Budget Advice"):
+        prompt = f"""
+        Income: {income}
+        Expenses: {expense}
+        Savings: {savings}
+
+        Suggest:
+        - Budget improvement tips
+        - Saving strategies
+        - Expense optimization
+        """
+        with st.spinner("Analyzing..."):
+            output = safe_ai([{"role":"user","content":prompt}])
+            st.success(output)
+            save_history("Budget Advice", output)
 
     # ---------- SUSTAINABILITY ----------
     with tab9:
