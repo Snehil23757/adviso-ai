@@ -597,16 +597,16 @@ with tab9:
             st.success(output)
             save_history("Sustainability Insights", output)
 
-  # ---------- COMPETITOR ----------
+# ---------- COMPETITOR ----------
 with tab10:
     st.subheader("📊 Advanced Competitor Analysis Dashboard")
 
-    # 🔹 Inputs
-    your_rev = st.number_input("Your Revenue (₹)", min_value=0.0)
-    comp_rev = st.number_input("Competitor Revenue (₹)", min_value=0.0)
+    # 🔹 Inputs (FIX: added keys)
+    your_rev = st.number_input("Your Revenue (₹)", min_value=0.0, key="comp_rev_you")
+    comp_rev = st.number_input("Competitor Revenue (₹)", min_value=0.0, key="comp_rev_comp")
 
-    your_cost = st.number_input("Your Cost (₹)", min_value=0.0)
-    comp_cost = st.number_input("Competitor Cost (₹)", min_value=0.0)
+    your_cost = st.number_input("Your Cost (₹)", min_value=0.0, key="comp_cost_you")
+    comp_cost = st.number_input("Competitor Cost (₹)", min_value=0.0, key="comp_cost_comp")
 
     st.markdown("---")
 
@@ -618,10 +618,17 @@ with tab10:
     col1.metric("Your Profit", f"₹{your_profit}")
     col2.metric("Competitor Profit", f"₹{comp_profit}")
 
+    st.markdown("---")
+
     # 🔹 Market Share
     st.subheader("📊 Market Share Analysis")
 
     total_market = your_rev + comp_rev
+
+    # FIX: default values to avoid crash
+    your_share = 0
+    comp_share = 0
+
     if total_market > 0:
         your_share = (your_rev / total_market) * 100
         comp_share = (comp_rev / total_market) * 100
@@ -635,6 +642,9 @@ with tab10:
         })
 
         st.plotly_chart(px.pie(pie_df, names="Company", values="Revenue"))
+
+    else:
+        st.info("Enter revenue values to see market share")
 
     st.markdown("---")
 
@@ -654,10 +664,11 @@ with tab10:
     # 🔹 Growth Simulation
     st.subheader("📈 Future Growth Simulation")
 
-    years = st.slider("Projection Years", 1, 10, 5)
+    # FIX: added keys
+    years = st.slider("Projection Years", 1, 10, 5, key="comp_years")
 
-    your_growth_rate = st.slider("Your Growth % per year", 0, 50, 10)
-    comp_growth_rate = st.slider("Competitor Growth % per year", 0, 50, 8)
+    your_growth_rate = st.slider("Your Growth % per year", 0, 50, 10, key="comp_growth_you")
+    comp_growth_rate = st.slider("Competitor Growth % per year", 0, 50, 8, key="comp_growth_comp")
 
     your_future = []
     comp_future = []
@@ -701,8 +712,8 @@ with tab10:
 
     st.markdown("---")
 
-    # 🔹 AI Strategy Suggestions
-    if st.button("🤖 Get Competitive Strategy"):
+    # 🔹 AI Strategy Suggestions (FIX: key added)
+    if st.button("🤖 Get Competitive Strategy", key="comp_ai_btn"):
         prompt = f"""
         My Revenue: {your_rev}
         Competitor Revenue: {comp_rev}
@@ -720,16 +731,110 @@ with tab10:
             st.success(output)
             save_history("Competitor Strategy", output)
 
-    # ---------- KPI ----------
-    with tab11:
-        col = st.selectbox("KPI", data.select_dtypes(include=['int64','float64']).columns)
-        k = data[col].dropna().values
+   # ---------- KPI ----------
+with tab11:
+    st.subheader("📊 Advanced KPI Dashboard")
 
-        if len(k)>0:
-            st.metric("Current", k[-1])
-            st.line_chart(k)
+    # 🔹 Select KPI Column
+    kpi_col = st.selectbox(
+        "Select KPI Column",
+        data.select_dtypes(include=['int64','float64']).columns,
+        key="kpi_col_select"
+    )
 
-            if len(k)>3:
-                m = LinearRegression().fit(np.arange(len(k)).reshape(-1,1), k)
-                pred = m.predict([[len(k)]])[0]
-                st.metric("Next", round(pred,2))
+    kpi_data = data[kpi_col].dropna().values
+
+    if len(kpi_data) > 0:
+
+        # 🔹 Metrics
+        current = kpi_data[-1]
+        avg = np.mean(kpi_data)
+
+        growth = 0
+        if len(kpi_data) > 1 and kpi_data[-2] != 0:
+            growth = ((kpi_data[-1] - kpi_data[-2]) / kpi_data[-2]) * 100
+
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Current Value", round(current,2))
+        col2.metric("Average", round(avg,2))
+        col3.metric("Growth %", f"{round(growth,2)}%")
+
+        st.markdown("---")
+
+        # 🔹 Trend Chart
+        st.subheader("📈 KPI Trend")
+        st.line_chart(kpi_data)
+
+        st.markdown("---")
+
+        # 🔹 Moving Average (NEW 🔥)
+        st.subheader("📊 Moving Average Analysis")
+
+        window = st.slider("Select Window Size", 2, 20, 5, key="kpi_window")
+
+        if len(kpi_data) >= window:
+            rolling_avg = pd.Series(kpi_data).rolling(window).mean()
+
+            df_ma = pd.DataFrame({
+                "Actual": kpi_data,
+                "Moving Avg": rolling_avg
+            })
+
+            st.line_chart(df_ma)
+        else:
+            st.warning("Not enough data for selected window")
+
+        st.markdown("---")
+
+        # 🔹 Forecasting (Advanced 🔥)
+        st.subheader("🔮 KPI Forecast")
+
+        years = st.slider("Forecast Period", 1, 10, 3, key="kpi_forecast_years")
+
+        if len(kpi_data) > 3:
+            X = np.arange(len(kpi_data)).reshape(-1,1)
+            model = LinearRegression().fit(X, kpi_data)
+
+            future_X = np.arange(len(kpi_data), len(kpi_data)+years).reshape(-1,1)
+            predictions = model.predict(future_X)
+
+            full_series = np.concatenate([kpi_data, predictions])
+
+            st.metric("Next Predicted Value", round(predictions[0],2))
+            st.metric("Final Forecast Value", round(predictions[-1],2))
+
+            st.line_chart(full_series)
+
+            # Table view
+            forecast_df = pd.DataFrame({
+                "Period": list(range(1, len(full_series)+1)),
+                "Value": full_series
+            })
+
+            st.dataframe(forecast_df)
+
+        else:
+            st.warning("Need at least 4 data points for forecasting")
+
+        st.markdown("---")
+
+        # 🔹 AI KPI Insights
+        if st.button("🤖 Generate KPI Insights", key="kpi_ai_btn"):
+            prompt = f"""
+            KPI Data Summary:
+            Current Value: {current}
+            Average: {avg}
+            Growth: {growth}
+
+            Provide:
+            - Trend explanation
+            - Performance evaluation
+            - Business recommendations
+            """
+            with st.spinner("Analyzing KPI..."):
+                output = safe_ai([{"role":"user","content":prompt}])
+                st.success(output)
+                save_history("KPI Insights", output)
+
+    else:
+        st.warning("No KPI data available")
