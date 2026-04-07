@@ -599,13 +599,128 @@ with tab9:
             output = safe_ai([{"role":"user","content":prompt}])
             st.success(output)
             save_history("Sustainability Insights", output)
-    # ---------- COMPETITOR ----------
-    with tab10:
-        y = st.number_input("Your Revenue")
-        c = st.number_input("Competitor")
-        if st.button("Compare"):
-            st.write(safe_ai([{"role":"user","content":f"{y} vs {c}"}]))
+ # ---------- COMPETITOR ----------
+with tab10:
+    st.subheader("📊 Advanced Competitor Analysis Dashboard")
 
+    # 🔹 Inputs
+    your_rev = st.number_input("Your Revenue (₹)", min_value=0.0)
+    comp_rev = st.number_input("Competitor Revenue (₹)", min_value=0.0)
+
+    your_cost = st.number_input("Your Cost (₹)", min_value=0.0)
+    comp_cost = st.number_input("Competitor Cost (₹)", min_value=0.0)
+
+    st.markdown("---")
+
+    # 🔹 Profit Comparison
+    your_profit = your_rev - your_cost
+    comp_profit = comp_rev - comp_cost
+
+    col1, col2 = st.columns(2)
+    col1.metric("Your Profit", f"₹{your_profit}")
+    col2.metric("Competitor Profit", f"₹{comp_profit}")
+
+    # 🔹 Market Share
+    st.subheader("📊 Market Share Analysis")
+
+    total_market = your_rev + comp_rev
+    if total_market > 0:
+        your_share = (your_rev / total_market) * 100
+        comp_share = (comp_rev / total_market) * 100
+
+        st.metric("Your Market Share %", f"{round(your_share,2)}%")
+        st.metric("Competitor Market Share %", f"{round(comp_share,2)}%")
+
+        pie_df = pd.DataFrame({
+            "Company": ["You", "Competitor"],
+            "Revenue": [your_rev, comp_rev]
+        })
+
+        st.plotly_chart(px.pie(pie_df, names="Company", values="Revenue"))
+
+    st.markdown("---")
+
+    # 🔹 Performance Comparison Chart
+    st.subheader("📈 Performance Comparison")
+
+    comp_df = pd.DataFrame({
+        "Metric": ["Revenue", "Cost", "Profit"],
+        "You": [your_rev, your_cost, your_profit],
+        "Competitor": [comp_rev, comp_cost, comp_profit]
+    })
+
+    st.plotly_chart(px.bar(comp_df, x="Metric", y=["You","Competitor"], barmode="group"))
+
+    st.markdown("---")
+
+    # 🔹 Growth Simulation
+    st.subheader("📈 Future Growth Simulation")
+
+    years = st.slider("Projection Years", 1, 10, 5)
+
+    your_growth_rate = st.slider("Your Growth % per year", 0, 50, 10)
+    comp_growth_rate = st.slider("Competitor Growth % per year", 0, 50, 8)
+
+    your_future = []
+    comp_future = []
+
+    y_val = your_rev
+    c_val = comp_rev
+
+    for i in range(years):
+        y_val = y_val * (1 + your_growth_rate/100)
+        c_val = c_val * (1 + comp_growth_rate/100)
+        your_future.append(y_val)
+        comp_future.append(c_val)
+
+    st.line_chart({
+        "Your Growth": your_future,
+        "Competitor Growth": comp_future
+    })
+
+    st.markdown("---")
+
+    # 🔹 Competitive Strength Score
+    st.subheader("🏆 Competitive Strength Score")
+
+    score = 50
+
+    if your_profit > comp_profit:
+        score += 20
+    if your_share > comp_share:
+        score += 20
+    if your_growth_rate > comp_growth_rate:
+        score += 10
+
+    st.metric("Your Competitive Score", f"{score}/100")
+
+    if score > 80:
+        st.success("Strong Market Position 🚀")
+    elif score > 50:
+        st.warning("Moderate Competition ⚠️")
+    else:
+        st.error("High Competitive Risk ❌")
+
+    st.markdown("---")
+
+    # 🔹 AI Strategy Suggestions
+    if st.button("🤖 Get Competitive Strategy"):
+        prompt = f"""
+        My Revenue: {your_rev}
+        Competitor Revenue: {comp_rev}
+        My Profit: {your_profit}
+        Competitor Profit: {comp_profit}
+
+        Suggest:
+        - How to outperform competitor
+        - Pricing strategies
+        - Growth strategies
+        - Market positioning
+        """
+        with st.spinner("Analyzing competition..."):
+            output = safe_ai([{"role":"user","content":prompt}])
+            st.success(output)
+            save_history("Competitor Strategy", output)
     # ---------- KPI ----------
     with tab11:
         col = st.selectbox("KPI", data.select_dtypes(include=['int64','float64']).columns)
