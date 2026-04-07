@@ -107,7 +107,7 @@ if file:
    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12 = st.tabs(
     ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit","📈 Forecast","💰 Budget","🌱 Sustainability","📊 Competitor","📊 KPI","📊 Dashboard"]
 )
-    )
+    
 
     # ---------- OVERVIEW ----------
     with tab1:
