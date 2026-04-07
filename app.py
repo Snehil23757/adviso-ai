@@ -333,13 +333,78 @@ with tab6:
             st.success(output)
             save_history("Profit Strategy", output)
 
-    # ---------- FORECAST ----------
-    with tab7:
-        col = st.selectbox("Column", data.select_dtypes(include=['int64','float64']).columns)
-        v = data[col].dropna().values
-        if len(v)>3:
-            m = LinearRegression().fit(np.arange(len(v)).reshape(-1,1), v)
-            st.metric("Prediction", round(m.predict([[len(v)]])[0],2))
+ # ---------- FORECAST ----------
+with tab7:
+    st.subheader("📈 Advanced Forecasting (1–10 Years)")
+
+    # 🔹 Select Column
+    col = st.selectbox("Select Column for Forecast", data.select_dtypes(include=['int64','float64']).columns)
+
+    values = data[col].dropna().values
+
+    if len(values) > 3:
+
+        # 🔹 Forecast Horizon
+        years = st.slider("Select Forecast Period (Years)", 1, 10, 3)
+
+        # 🔹 Convert years → steps
+        steps = years  # assuming yearly data (you can later improve)
+
+        # 🔹 Train Model
+        X = np.arange(len(values)).reshape(-1,1)
+        model = LinearRegression().fit(X, values)
+
+        # 🔹 Future Prediction
+        future_X = np.arange(len(values), len(values) + steps).reshape(-1,1)
+        predictions = model.predict(future_X)
+
+        # 🔹 Combine Data
+        full_series = np.concatenate([values, predictions])
+
+        # 🔹 Metrics
+        st.metric("Last Actual Value", round(values[-1],2))
+        st.metric("Final Forecast Value", round(predictions[-1],2))
+
+        growth = ((predictions[-1] - values[-1]) / values[-1]) * 100 if values[-1] != 0 else 0
+        st.metric("Forecast Growth %", f"{round(growth,2)}%")
+
+        st.markdown("---")
+
+        # 🔹 Visualization
+        st.subheader("📊 Forecast Trend")
+
+        st.line_chart(full_series)
+
+        # 🔹 Table View
+        st.subheader("📋 Forecast Data")
+
+        forecast_df = pd.DataFrame({
+            "Period": list(range(1, len(full_series)+1)),
+            "Values": full_series
+        })
+
+        st.dataframe(forecast_df)
+
+        st.markdown("---")
+
+        # 🔹 AI Insight (VERY POWERFUL 🔥)
+        if st.button("🤖 Explain Forecast"):
+            prompt = f"""
+            Current last value: {values[-1]}
+            Forecast after {years} years: {predictions[-1]}
+
+            Explain:
+            - Trend
+            - Growth pattern
+            - Business meaning
+            """
+            with st.spinner("Analyzing trend..."):
+                output = safe_ai([{"role":"user","content":prompt}])
+                st.success(output)
+                save_history("Forecast Insight", output)
+
+    else:
+        st.warning("Need at least 4 data points for forecasting")
 
     # ---------- BUDGET ----------
     with tab8:
