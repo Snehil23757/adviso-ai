@@ -31,8 +31,8 @@ def safe_ai(messages):
         )
         return res.choices[0].message.content
 
-    except Exception:
-        return "⚠️ AI unavailable (limit reached)"
+    except Exception as e:
+        return f"⚠️ Error: {str(e)}"
 
 # ---------------- HISTORY ----------------
 if "history" not in st.session_state:
@@ -66,7 +66,7 @@ st.markdown("""
 
 st.markdown("<div class='title'>🚀 Adviso AI</div>", unsafe_allow_html=True)
 
-# ---------------- SIDEBAR LOGIN ----------------
+# ---------------- LOGIN ----------------
 st.sidebar.markdown("## 👤 Profile")
 
 if not st.session_state.logged_in:
@@ -91,16 +91,6 @@ else:
     st.sidebar.success(f"Welcome {st.session_state.username}")
     if st.sidebar.button("Logout"):
         st.session_state.logged_in = False
-
-# ---------------- HISTORY ----------------
-st.sidebar.markdown("## 📜 History")
-
-if len(st.session_state.history) == 0:
-    st.sidebar.info("No history yet")
-else:
-    for i, item in enumerate(reversed(st.session_state.history)):
-        if st.sidebar.button(f"{item['title']} {i}"):
-            st.sidebar.write(item["content"])
 
 # ---------------- BLOCK ----------------
 if not st.session_state.logged_in:
@@ -135,79 +125,70 @@ if file:
         }).sort_values(by="Missing Values", ascending=False)
 
         st.dataframe(missing_df)
-        st.metric("Total Missing Values", int(missing.sum()))
-
-        st.subheader("📊 Missing Visualization")
+        st.metric("Total Missing", int(missing.sum()))
         st.bar_chart(missing)
 
         with st.expander("View Full Data"):
             st.dataframe(data)
 
-        st.dataframe(data.head(10))
-
     # ---------- CHARTS ----------
     with tab2:
+        st.subheader("📈 Smart Charts")
+
         chart = st.selectbox("Chart Type", ["Scatter","Line","Bar","Histogram","Box","Pie"])
         x = st.selectbox("X Axis", data.columns)
         y = st.selectbox("Y Axis", data.select_dtypes(include=['int64','float64']).columns)
 
-        if chart == "Scatter":
-            st.plotly_chart(px.scatter(data,x=x,y=y))
-        elif chart == "Line":
-            st.plotly_chart(px.line(data,x=x,y=y))
-        elif chart == "Bar":
-            st.plotly_chart(px.bar(data,x=x,y=y))
-        elif chart == "Histogram":
-            st.plotly_chart(px.histogram(data,x=x))
-        elif chart == "Box":
-            st.plotly_chart(px.box(data,x=x,y=y))
-        elif chart == "Pie":
-            st.plotly_chart(px.pie(data,names=x,values=y))
+        filtered_data = data.copy()
 
-    # ---------- AI ----------
-    with tab3:
-        if st.button("Generate Insights"):
-            output = safe_ai([{"role":"user","content":data.head(10).to_string()}])
-            st.success(output)
-            save_history("AI", output)
+        # CATEGORY FILTER
+        cat_cols = data.select_dtypes(include=['object']).columns.tolist()
+        if len(cat_cols) > 0:
+            cat_filter = st.selectbox("Category Filter", ["None"] + cat_cols)
+            if cat_filter != "None":
+                vals = st.multiselect("Select Values", data[cat_filter].dropna().unique())
+                if vals:
+                    filtered_data = filtered_data[filtered_data[cat_filter].isin(vals)]
 
-    # ---------- CHAT ----------
-    with tab4:
-        q = st.text_input("Ask Question")
-        if q:
-            output = safe_ai([{"role":"user","content":q}])
-            st.write(output)
-            save_history("Chat", output)
+        # RANGE FILTER
+        num_cols = data.select_dtypes(include=['int64','float64']).columns.tolist()
+        if len(num_cols) > 0:
+            range_col = st.selectbox("Range Filter", ["None"] + num_cols)
+            if range_col != "None":
+                min_val = float(data[range_col].min())
+                max_val = float(data[range_col].max())
+                r = st.slider("Select Range", min_val, max_val, (min_val, max_val))
+                filtered_data = filtered_data[(filtered_data[range_col] >= r[0]) & (filtered_data[range_col] <= r[1])]
 
-    # ---------- IDEAS ----------
-    with tab5:
-        if st.button("Generate Ideas"):
-            output = safe_ai([{"role":"user","content":"startup ideas"}])
-            st.write(output)
-            save_history("Ideas", output)
+        # SORT
+        sort_col = st.selectbox("Sort Column", ["None"] + list(filtered_data.columns))
+        order = st.radio("Order", ["Ascending","Descending"])
+        if sort_col != "None":
+            filtered_data = filtered_data.sort_values(by=sort_col, ascending=(order=="Ascending"))
 
-    # ---------- PROFIT ----------
-    with tab6:
-        rev = st.number_input("Revenue")
-        cost = st.number_input("Cost")
-        if st.button("Calculate Profit"):
-            st.success(f"Profit ₹{rev-cost}")
+        st.dataframe(filtered_data.head(20))
 
-    # ---------- FORECAST ----------
-    with tab7:
-        col = st.selectbox("Column", data.select_dtypes(include=['int64','float64']).columns)
-        values = data[col].dropna().values
-
-        if len(values)>3:
-            model = LinearRegression().fit(np.arange(len(values)).reshape(-1,1), values)
-            pred = model.predict([[len(values)]])[0]
-            st.metric("Prediction", round(pred,2))
+        if len(filtered_data) > 0:
+            if chart == "Scatter":
+                st.plotly_chart(px.scatter(filtered_data, x=x, y=y))
+            elif chart == "Line":
+                st.plotly_chart(px.line(filtered_data, x=x, y=y))
+            elif chart == "Bar":
+                st.plotly_chart(px.bar(filtered_data, x=x, y=y))
+            elif chart == "Histogram":
+                st.plotly_chart(px.histogram(filtered_data, x=x))
+            elif chart == "Box":
+                st.plotly_chart(px.box(filtered_data, x=x, y=y))
+            elif chart == "Pie":
+                st.plotly_chart(px.pie(filtered_data, names=x, values=y))
+        else:
+            st.warning("No data after filtering")
 
     # ---------- KPI DASHBOARD ----------
     with tab11:
         st.subheader("📊 KPI Tracker & Predictor")
 
-        kpi_col = st.selectbox("Select KPI Column", data.select_dtypes(include=['int64','float64']).columns)
+        kpi_col = st.selectbox("Select KPI", data.select_dtypes(include=['int64','float64']).columns)
         kpi_data = data[kpi_col].dropna().values
 
         if len(kpi_data) > 0:
@@ -218,48 +199,17 @@ if file:
             if len(kpi_data) > 1 and kpi_data[-2] != 0:
                 growth = ((kpi_data[-1] - kpi_data[-2]) / kpi_data[-2]) * 100
 
-            c1, c2, c3 = st.columns(3)
+            c1,c2,c3 = st.columns(3)
             c1.metric("Current", round(current,2))
             c2.metric("Average", round(avg,2))
             c3.metric("Growth %", f"{round(growth,2)}%")
 
-            st.subheader("📈 Trend")
             st.line_chart(kpi_data)
-
-            st.subheader("🔮 Prediction")
 
             if len(kpi_data) > 3:
                 X = np.arange(len(kpi_data)).reshape(-1,1)
                 model = LinearRegression().fit(X, kpi_data)
-                next_val = model.predict([[len(kpi_data)]])[0]
+                pred = model.predict([[len(kpi_data)]])[0]
 
-                st.metric("Next Value", round(next_val,2))
-
-                future = np.append(kpi_data, next_val)
-                st.line_chart(future)
-            else:
-                st.warning("Need at least 4 data points")
-
-    # ---------- BUDGET ----------
-    with tab8:
-        income = st.number_input("Income")
-        exp = st.number_input("Expenses")
-        if st.button("Analyze Budget"):
-            output = safe_ai([{"role":"user","content":f"income {income}, expense {exp} advice"}])
-            st.success(output)
-
-    # ---------- SUSTAINABILITY ----------
-    with tab9:
-        budget = st.number_input("Total Budget")
-        green = st.number_input("Green Investment")
-        if st.button("Analyze Sustainability"):
-            output = safe_ai([{"role":"user","content":f"budget {budget}, green {green} sustainability"}])
-            st.success(output)
-
-    # ---------- COMPETITOR ----------
-    with tab10:
-        your = st.number_input("Your Revenue")
-        comp = st.number_input("Competitor Revenue")
-        if st.button("Compare"):
-            output = safe_ai([{"role":"user","content":f"my {your}, competitor {comp} strategy"}])
-            st.success(output)
+                st.metric("Next Prediction", round(pred,2))
+                st.line_chart(np.append(kpi_data, pred))
