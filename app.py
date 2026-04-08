@@ -161,10 +161,83 @@ if file:
 
     # ---------- AI ----------
     with tab3:
-        if st.button("Generate Insights"):
-            out = safe_ai([{"role":"user","content":data.head().to_string()}])
-            st.write(out)
 
+    st.subheader("🧠 AI Business Intelligence Engine")
+
+    st.markdown("### 🔍 Select Analysis Type")
+
+    analysis_type = st.selectbox(
+        "Choose Insight Type",
+        [
+            "Full Business Analysis",
+            "Growth Strategy",
+            "Risk & Loophole Detection",
+            "Profit Optimization",
+            "Market Opportunities"
+        ]
+    )
+
+    st.markdown("---")
+
+    detail_level = st.selectbox(
+        "Detail Level",
+        ["Basic", "Detailed", "Advanced (Consultant Level)"]
+    )
+
+    st.markdown("---")
+
+    if st.button("🚀 Generate AI Insights"):
+
+        sample = data.head(15).to_string()
+
+        # 🔥 Dynamic Prompt (VERY POWERFUL)
+        prompt = f"""
+        You are a senior business consultant.
+
+        Analyze this dataset:
+        {sample}
+
+        Analysis Type: {analysis_type}
+        Detail Level: {detail_level}
+
+        Provide a structured response with:
+
+        1. 📊 Key Insights
+        - What patterns do you see?
+        - Important trends
+
+        2. 🚀 Growth Opportunities
+        - Specific ways to grow revenue
+        - Market expansion ideas
+        - Scaling strategies
+
+        3. ⚠️ Risks & Loopholes
+        - Hidden problems in data
+        - Weak areas in business
+        - Operational inefficiencies
+
+        4. 💡 Recommendations
+        - Step-by-step actions
+        - What should be done immediately
+        - What should be done long-term
+
+        5. 📈 Strategic Plan
+        - Short-term (0–3 months)
+        - Mid-term (3–12 months)
+        - Long-term (1–3 years)
+
+        Make the answer practical, data-driven, and business-focused.
+        """
+
+        with st.spinner("Analyzing deeply..."):
+            output = safe_ai([{"role":"user","content":prompt}])
+
+            st.success("✅ Analysis Generated")
+
+            st.markdown("### 📑 AI Report")
+            st.write(output)
+
+            save_history("AI Advanced Insights", output)
     # ---------- CHAT ----------
     with tab4:
         q = st.text_input("Ask")
