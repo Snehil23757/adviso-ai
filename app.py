@@ -160,12 +160,13 @@ if file:
             st.plotly_chart(px.histogram(filtered,x=x))
 
     # ---------- AI ----------
-    with tab3:
-        st.subheader("🧠 AI Business Intelligence Engine")
-        
-        st.markdown("### 🔍 Select Analysis Type")
-        analysis_type = st.selectbox(
-            "Choose Insight Type",
+with tab3:
+    st.subheader("🧠 AI Business Intelligence Engine")
+
+    st.markdown("### 🔍 Select Analysis Type")
+
+    analysis_type = st.selectbox(
+        "Choose Insight Type",
         [
             "Full Business Analysis",
             "Growth Strategy",
@@ -174,13 +175,17 @@ if file:
             "Market Opportunities"
         ]
     )
-        st.markdown("---")
-        detail_level = st.selectbox(
+
+    st.markdown("---")
+
+    detail_level = st.selectbox(
         "Detail Level",
         ["Basic", "Detailed", "Advanced (Consultant Level)"]
     )
-        st.markdown("---")
-        if st.button("🚀 Generate AI Insights"):
+
+    st.markdown("---")
+
+    if st.button("🚀 Generate AI Insights"):
 
         sample = data.head(15).to_string()
 
