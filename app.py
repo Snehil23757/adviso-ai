@@ -40,22 +40,20 @@ if "last_call" not in st.session_state:
 
 # ---------------- FUNCTIONS ----------------
 def can_call():
-    # Cooldown period increased to 10 seconds to allow AI more time to respond
-    return time.time() - st.session_state.last_call > 10
+    return time.time() - st.session_state.last_call > 5
 
 def safe_ai(messages):
-    if not can_call():
-        return "cooldown", "⏳ Please wait at least 10 seconds before making another AI call. The AI is still processing or on cooldown."
-
-    st.session_state.last_call = time.time()
     try:
+        if not can_call():
+            return "⏳ Please wait a few seconds before making another AI call."
+        st.session_state.last_call = time.time()
         res = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages
         )
-        return "success", res.choices[0].message.content
+        return res.choices[0].message.content
     except Exception as e:
-        return "error", f"⚠️ AI Error: {str(e)}"
+        return f"⚠️ AI Error: {str(e)}"
 
 def save_history(title, content):
     st.session_state.history.append({"title": title, "content": content})
@@ -186,21 +184,19 @@ if file:
             {data_summary}
             """
             with st.spinner("Generating comprehensive report..."):
-                status, out = safe_ai([{"role":"user","content":prompt}])
-                if status == "success":
+                out = safe_ai([{"role":"user","content":prompt}])
+                if out.startswith("⏳") or out.startswith("⚠️"):
+                    st.warning(out) if out.startswith("⏳") else st.error(out)
+                else:
                     st.success(out)
                     save_history("Comprehensive AI Report", out)
-                elif status == "cooldown":
-                    st.warning(out)
-                else: # status == "error"
-                    st.error(out)
 
     # ---------- CHAT ----------
     with tab4:
         st.subheader("🤖 AI Data Chatbot")
 
         # Display initial report or generate if not present
-        if "chat_initial_report_status" not in st.session_state:
+        if "chat_initial_report_content" not in st.session_state:
             # Generate a concise initial data summary for the AI
             data_summary_for_initial_chat = f"""
             Dataset Head:\n{data.head().to_string()}\n\n
@@ -208,27 +204,24 @@ if file:
             Missing Values:\n{data.isnull().sum().to_string()}\n
             """
             initial_prompt = f"""
-            Based on the following data summary, provide a brief, high-level overview
-            of the dataset, pointing out any immediate insights, interesting facts,
-            or potential areas for further exploration. Focus on general business
-            implications. Keep it concise, like an introductory chat message.
+            Based on the following data summary, provide a concise, high-level overview
+            of the dataset, pointing out key immediate insights, interesting facts,
+            and potential areas for further exploration. Focus on general business
+            implications and potential opportunities. Be accurate and insightful.
 
             Dataset Summary:
             {data_summary_for_initial_chat}
             """
             with st.spinner("Generating initial data insights..."):
-                status, out = safe_ai([{"role":"user","content":initial_prompt}])
-                st.session_state.chat_initial_report_status = status
+                out = safe_ai([{"role":"user","content":initial_prompt}])
                 st.session_state.chat_initial_report_content = out
                 save_history("Initial Chat Insights", out)
 
         # Display the initial report
-        if st.session_state.chat_initial_report_status == "success":
+        if st.session_state.chat_initial_report_content.startswith("⏳") or st.session_state.chat_initial_report_content.startswith("⚠️"):
+            st.warning(st.session_state.chat_initial_report_content) if st.session_state.chat_initial_report_content.startswith("⏳") else st.error(st.session_state.chat_initial_report_content)
+        else:
             st.markdown(st.session_state.chat_initial_report_content)
-        elif st.session_state.chat_initial_report_status == "cooldown":
-            st.warning(st.session_state.chat_initial_report_content)
-        else: # error
-            st.error(st.session_state.chat_initial_report_content)
 
         st.markdown("---") # Separator
 
@@ -236,23 +229,23 @@ if file:
         if q:
             # Generate a summary of the data for the AI to consider
             data_summary_for_chat = f"""
-            Here's a summary of the data you uploaded:
+            Here's a detailed summary of the data you uploaded. Please use this information
+            to provide deep and accurate data insights when relevant to the user's question.
+            If the question cannot be answered directly from the provided data, use your
+            extensive general knowledge to provide a comprehensive response.
+
             Dataset Head:\n{data.head().to_string()}\n\n
             Dataset Description:\n{data.describe(include='all').to_string()}\n\n
             Missing Values:\n{data.isnull().sum().to_string()}\n
-            Please use this data to inform your answers when relevant. If the question cannot be answered directly from the provided data, use your general knowledge.
-
             User's question: {q}
             """
             with st.spinner("Thinking..."):
-                status, out = safe_ai([{"role":"user","content":data_summary_for_chat}])
-                if status == "success":
+                out = safe_ai([{"role":"user","content":data_summary_for_chat}])
+                if out.startswith("⏳") or out.startswith("⚠️"):
+                    st.warning(out) if out.startswith("⏳") else st.error(out)
+                else:
                     st.success(out)
                     save_history(f"Chat: {q}", out)
-                elif status == "cooldown":
-                    st.warning(out)
-                else: # status == "error"
-                    st.error(out)
 
     # ---------- IDEAS ----------
     with tab5:
@@ -282,14 +275,12 @@ if file:
             - Target Customers
             """
             with st.spinner("Generating ideas..."):
-                status, out = safe_ai([{"role":"user","content":prompt}])
-                if status == "success":
+                out = safe_ai([{"role":"user","content":prompt}])
+                if out.startswith("⏳") or out.startswith("⚠️"):
+                    st.warning(out) if out.startswith("⏳") else st.error(out)
+                else:
                     st.success(out)
                     save_history("Startup Ideas", out)
-                elif status == "cooldown":
-                    st.warning(out)
-                else: # status == "error"
-                    st.error(out)
 
         # 📈 Growth Ideas
         if col2.button("📈 Growth Strategies"):
@@ -299,14 +290,12 @@ if file:
             Include marketing, scaling, and digital expansion.
             """
             with st.spinner("Analyzing..."):
-                status, out = safe_ai([{"role":"user","content":prompt}])
-                if status == "success":
+                out = safe_ai([{"role":"user","content":prompt}])
+                if out.startswith("⏳") or out.startswith("⚠️"):
+                    st.warning(out) if out.startswith("⏳") else st.error(out)
+                else:
                     st.success(out)
                     save_history("Growth Ideas", out)
-                elif status == "cooldown":
-                    st.warning(out)
-                else: # status == "error"
-                    st.error(out)
 
         # 💰 Cost Optimization
         if col3.button("💰 Cost Optimization"):
@@ -315,14 +304,12 @@ if file:
             Focus on improving efficiency and profitability.
             """
             with st.spinner("Optimizing..."):
-                status, out = safe_ai([{"role":"user","content":prompt}])
-                if status == "success":
+                out = safe_ai([{"role":"user","content":prompt}])
+                if out.startswith("⏳") or out.startswith("⚠️"):
+                    st.warning(out) if out.startswith("⏳") else st.error(out)
+                else:
                     st.success(out)
                     save_history("Cost Ideas", out)
-                elif status == "cooldown":
-                    st.warning(out)
-                else: # status == "error"
-                    st.error(out)
 
         st.markdown("---")
 
@@ -341,14 +328,12 @@ if file:
             - Growth Strategy
             """
             with st.spinner("Building plan..."):
-                status, out = safe_ai([{"role":"user","content":prompt}])
-                if status == "success":
+                out = safe_ai([{"role":"user","content":prompt}])
+                if out.startswith("⏳") or out.startswith("⚠️"):
+                    st.warning(out) if out.startswith("⏳") else st.error(out)
+                else:
                     st.success(out)
                     save_history("Business Plan", out)
-                elif status == "cooldown":
-                    st.warning(out)
-                else: # status == "error"
-                    st.error(out)
 
         st.markdown("---")
 
@@ -366,14 +351,12 @@ if file:
             - Monetization strategies
             """
             with st.spinner("Analyzing dataset..."):
-                status, out = safe_ai([{"role":"user","content":prompt}])
-                if status == "success":
+                out = safe_ai([{"role":"user","content":prompt}])
+                if out.startswith("⏳") or out.startswith("⚠️"):
+                    st.warning(out) if out.startswith("⏳") else st.error(out)
+                else:
                     st.success(out)
                     save_history("Data Ideas", out)
-                elif status == "cooldown":
-                    st.warning(out)
-                else: # status == "error"
-                    st.error(out)
     # ---------- PROFIT ----------
     with tab6:
         st.subheader("💰 Profit Analytics Dashboard")
@@ -436,14 +419,12 @@ if file:
             Suggest ways to improve profitability, reduce cost, and increase revenue.
             """
             with st.spinner("Analyzing..."):
-                status, out = safe_ai([{"role":"user","content":prompt}])
-                if status == "success":
+                out = safe_ai([{"role":"user","content":prompt}])
+                if out.startswith("⏳") or out.startswith("⚠️"):
+                    st.warning(out) if out.startswith("⏳") else st.error(out)
+                else:
                     st.success(out)
                     save_history("Profit Strategy", out)
-                elif status == "cooldown":
-                    st.warning(out)
-                else: # status == "error"
-                    st.error(out)
     # ---------- FORECAST ----------
     with tab7:
         st.subheader("📈 Advanced Forecasting (1–10 Years)")
@@ -510,14 +491,12 @@ if file:
                 - Business meaning
                 """
                 with st.spinner("Analyzing trend..."):
-                    status, out = safe_ai([{"role":"user","content":prompt}])
-                    if status == "success":
+                    out = safe_ai([{"role":"user","content":prompt}])
+                    if out.startswith("⏳") or out.startswith("⚠️"):
+                        st.warning(out) if out.startswith("⏳") else st.error(out)
+                    else:
                         st.success(out)
                         save_history("Forecast Insight", out)
-                    elif status == "cooldown":
-                        st.warning(out)
-                    else: # status == "error"
-                        st.error(out)
 
         else:
             st.warning("Need at least 4 data points for forecasting")
@@ -615,14 +594,12 @@ if file:
             - Expense optimization
             """
             with st.spinner("Analyzing..."):
-                status, out = safe_ai([{"role":"user","content":prompt}])
-                if status == "success":
+                out = safe_ai([{"role":"user","content":prompt}])
+                if out.startswith("⏳") or out.startswith("⚠️"):
+                    st.warning(out) if out.startswith("⏳") else st.error(out)
+                else:
                     st.success(out)
                     save_history("Budget Advice", out)
-                elif status == "cooldown":
-                    st.warning(out)
-                else: # status == "error"
-                    st.error(out)
 
     # ---------- SUSTAINABILITY ----------
     with tab9:
@@ -716,14 +693,12 @@ if file:
             - ESG recommendations
             """
             with st.spinner("Analyzing sustainability..."):
-                status, out = safe_ai([{"role":"user","content":prompt}])
-                if status == "success":
+                out = safe_ai([{"role":"user","content":prompt}])
+                if out.startswith("⏳") or out.startswith("⚠️"):
+                    st.warning(out) if out.startswith("⏳") else st.error(out)
+                else:
                     st.success(out)
                     save_history("Sustainability Insights", out)
-                elif status == "cooldown":
-                    st.warning(out)
-                else: # status == "error"
-                    st.error(out)
 
     # ---------- COMPETITOR ----------
     with tab10:
@@ -855,14 +830,12 @@ if file:
             - Market positioning
             """
             with st.spinner("Analyzing competition..."):
-                status, out = safe_ai([{"role":"user","content":prompt}])
-                if status == "success":
+                out = safe_ai([{"role":"user","content":prompt}])
+                if out.startswith("⏳") or out.startswith("⚠️"):
+                    st.warning(out) if out.startswith("⏳") else st.error(out)
+                else:
                     st.success(out)
                     save_history("Competitor Strategy", out)
-                elif status == "cooldown":
-                    st.warning(out)
-                else: # status == "error"
-                    st.error(out)
 
     # ---------- KPI ----------
     with tab11:
@@ -965,14 +938,12 @@ if file:
                 - Business recommendations
                 """
                 with st.spinner("Analyzing KPI..."):
-                    status, out = safe_ai([{"role":"user","content":prompt}])
-                    if status == "success":
+                    out = safe_ai([{"role":"user","content":prompt}])
+                    if out.startswith("⏳") or out.startswith("⚠️"):
+                        st.warning(out) if out.startswith("⏳") else st.error(out)
+                    else:
                         st.success(out)
                         save_history("KPI Insights", out)
-                    elif status == "cooldown":
-                        st.warning(out)
-                    else: # status == "error"
-                        st.error(out)
 
         else:
             st.warning("No KPI data available")
