@@ -153,73 +153,94 @@ if file:
     st.dataframe(stats, use_container_width=True)
 
     # ---------- CHARTS ----------
-    with tab2:
-        st.subheader("📈 Data Visualization")
+   with tab2:
+    st.subheader("📈 Advanced Data Visualization")
 
-    # 🔹 Column separation
     numeric_cols = data.select_dtypes(include=['int64','float64']).columns.tolist()
     cat_cols = data.select_dtypes(include=['object']).columns.tolist()
 
     if len(numeric_cols) == 0:
-        st.error("❌ No numeric columns available for plotting")
-        st.stop()
+        st.error("❌ No numeric columns available")
+    else:
+        left, right = st.columns([1,2])
 
-    # 🔹 Layout (2 columns)
-    col_left, col_right = st.columns([1,2])
+        # -------- LEFT PANEL --------
+        with left:
+            st.markdown("### ⚙️ Controls")
 
-    with col_left:
-        st.markdown("### ⚙️ Chart Controls")
+            chart = st.selectbox(
+                "Chart Type",
+                ["Scatter","Line","Bar","Histogram","Box","Violin","Pie","Heatmap","Area"]
+            )
 
-        chart = st.selectbox("Chart Type", ["Scatter","Line","Bar","Histogram"])
+            x = st.selectbox("X-axis", data.columns)
 
-        x = st.selectbox("X-axis", data.columns)
+            y = None
+            if chart not in ["Histogram","Pie","Heatmap"]:
+                y = st.selectbox("Y-axis", numeric_cols)
 
-        y = None
-        if chart != "Histogram":
-            y = st.selectbox("Y-axis", numeric_cols)
+            # 🔹 Filter
+            st.markdown("### 🎯 Filters")
 
-        # 🔹 Filter section
-        st.markdown("### 🎯 Filter Data")
+            filtered = data.copy()
 
-        filtered = data.copy()
+            if len(cat_cols) > 0:
+                cat = st.selectbox("Category", ["None"] + cat_cols)
 
-        if len(cat_cols) > 0:
-            cat = st.selectbox("Category Filter", ["None"] + cat_cols)
+                if cat != "None":
+                    vals = st.multiselect("Values", data[cat].dropna().unique())
 
-            if cat != "None":
-                vals = st.multiselect("Select Values", data[cat].dropna().unique())
+                    if vals:
+                        filtered = filtered[filtered[cat].isin(vals)]
 
-                if vals:
-                    filtered = filtered[filtered[cat].isin(vals)]
+            st.write(f"Rows after filter: {filtered.shape[0]}")
 
-        st.markdown("---")
-        st.write(f"Filtered Rows: {filtered.shape[0]}")
+        # -------- RIGHT PANEL --------
+        with right:
+            st.markdown("### 📊 Chart Output")
 
-    with col_right:
-        st.markdown("### 📊 Chart Output")
+            if filtered.empty:
+                st.warning("No data after filtering")
+            else:
+                try:
+                    # -------- BASIC --------
+                    if chart == "Scatter":
+                        fig = px.scatter(filtered, x=x, y=y)
 
-        if filtered.empty:
-            st.warning("⚠️ No data available after filtering")
-        else:
-            try:
-                if chart == "Scatter":
-                    fig = px.scatter(filtered, x=x, y=y)
-                elif chart == "Line":
-                    fig = px.line(filtered, x=x, y=y)
-                elif chart == "Bar":
-                    fig = px.bar(filtered, x=x, y=y)
-                else:
-                    fig = px.histogram(filtered, x=x)
+                    elif chart == "Line":
+                        fig = px.line(filtered, x=x, y=y)
 
-                st.plotly_chart(fig, use_container_width=True)
+                    elif chart == "Bar":
+                        fig = px.bar(filtered, x=x, y=y)
 
-            except Exception as e:
-                st.error(f"⚠️ Chart error: {str(e)}")
+                    elif chart == "Histogram":
+                        fig = px.histogram(filtered, x=x)
 
-        st.markdown("---")
-        st.subheader("📄 Data Preview")
-        st.dataframe(filtered.head(), use_container_width=True)
+                    # -------- ADVANCED --------
+                    elif chart == "Box":
+                        fig = px.box(filtered, x=x, y=y)
 
+                    elif chart == "Violin":
+                        fig = px.violin(filtered, x=x, y=y, box=True)
+
+                    elif chart == "Pie":
+                        fig = px.pie(filtered, names=x)
+
+                    elif chart == "Heatmap":
+                        corr = filtered[numeric_cols].corr()
+                        fig = px.imshow(corr, text_auto=True)
+
+                    elif chart == "Area":
+                        fig = px.area(filtered, x=x, y=y)
+
+                    st.plotly_chart(fig, use_container_width=True)
+
+                except Exception as e:
+                    st.error(f"Chart error: {str(e)}")
+
+            st.markdown("---")
+            st.subheader("📄 Data Preview")
+            st.dataframe(filtered.head(), use_container_width=True)
     # ---------- AI ----------
     with tab3:
         if st.button("Generate Insights"):
