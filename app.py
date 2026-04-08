@@ -334,7 +334,7 @@ if file:
             save_history("Profit Strategy", output)
 # ---------- FORECAST ----------
     with tab7:
-    st.subheader("📈 Advanced Forecasting (1–10 Years)")
+        st.subheader("📈 Advanced Forecasting (1–10 Years)")
 
     # 🔹 Select Column
     col = st.selectbox("Select Column for Forecast", data.select_dtypes(include=['int64','float64']).columns)
@@ -406,7 +406,7 @@ if file:
         st.warning("Need at least 4 data points for forecasting")
 # ---------- BUDGET ----------
     with tab8:
-    st.subheader("💰 Advanced Budget Planning Dashboard")
+        st.subheader("💰 Advanced Budget Planning Dashboard")
 
     # 🔹 Income & Expenses
     income = st.number_input("Monthly Income (₹)", min_value=0.0)
@@ -504,7 +504,7 @@ if file:
 
   # ---------- SUSTAINABILITY ----------
     with tab9:
-    st.subheader("🌱 Sustainability & ESG Dashboard")
+        st.subheader("🌱 Sustainability & ESG Dashboard")
 
     # 🔹 Inputs
     total_budget = st.number_input("Total Budget (₹)", min_value=0.0)
@@ -600,7 +600,7 @@ if file:
 
 # ---------- COMPETITOR ----------
     with tab10:
-    st.subheader("📊 Advanced Competitor Analysis Dashboard")
+        st.subheader("📊 Advanced Competitor Analysis Dashboard")
 
     # 🔹 Inputs (FIX: added keys)
     your_rev = st.number_input("Your Revenue (₹)", min_value=0.0, key="comp_rev_you")
@@ -734,7 +734,7 @@ if file:
 
    # ---------- KPI ----------
     with tab11:
-    st.subheader("📊 Advanced KPI Dashboard")
+        st.subheader("📊 Advanced KPI Dashboard")
 
     # 🔹 Select KPI Column
     kpi_col = st.selectbox(
