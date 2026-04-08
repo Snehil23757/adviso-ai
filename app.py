@@ -244,10 +244,70 @@ with tab2:
             st.write(output)
 
     # ---------- CHAT ----------
-    with tab4:
-        q = st.text_input("Ask")
-        if q:
-            st.write(safe_ai([{"role":"user","content":q}]))
+  # ---------- CHAT ----------
+with tab4:
+    st.subheader("🤖 Smart Data Chat Assistant")
+
+    # 🔹 Chat history (optional but useful)
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+
+    # 🔹 User input
+    user_query = st.text_input("Ask anything about your dataset")
+
+    if st.button("Ask AI") and user_query:
+
+        # 🔥 Include dataset context
+        sample = data.head(20).to_string()
+
+        prompt = f"""
+        You are a data analyst and business consultant.
+
+        Here is a dataset sample:
+        {sample}
+
+        User Question:
+        {user_query}
+
+        Provide:
+
+        1. 📊 Direct Answer
+        - Answer the question clearly
+
+        2. 🔍 Data Insights
+        - What does the data say about this?
+
+        3. 💡 Recommendations
+        - What actions should be taken?
+
+        4. ❓ Related Questions
+        - Suggest 3 follow-up questions user should ask
+
+        5. ⚠️ Observations
+        - Any anomalies or patterns
+
+        Keep it simple, practical, and business-focused.
+        """
+
+        with st.spinner("Analyzing your data..."):
+            response = safe_ai([{"role": "user", "content": prompt}])
+
+            st.success("✅ Response Generated")
+
+            # Save chat
+            st.session_state.chat_history.append({
+                "question": user_query,
+                "answer": response
+            })
+
+    st.markdown("---")
+
+    # 🔹 Display chat history
+    if st.session_state.chat_history:
+        for chat in reversed(st.session_state.chat_history):
+            st.markdown(f"**🧑 You:** {chat['question']}")
+            st.markdown(f"**🤖 AI:** {chat['answer']}")
+            st.markdown("---")
 
     # ---------- IDEAS ----------
     with tab5:
