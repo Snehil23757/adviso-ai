@@ -116,32 +116,120 @@ if file:
         st.dataframe(data.describe())
 
     # ---------- CHARTS ----------
-    with tab2:
-        chart = st.selectbox("Chart", ["Scatter","Line","Bar","Histogram"])
-        x = st.selectbox("X", data.columns)
-        y = st.selectbox("Y", data.select_dtypes(include=['int64','float64']).columns)
+    # ---------- CHARTS ----------
+with tab2:
+    st.subheader("📈 Advanced Data Visualization")
 
-        filtered = data.copy()
+    numeric_cols = data.select_dtypes(include=['int64','float64']).columns.tolist()
+    cat_cols = data.select_dtypes(include=['object']).columns.tolist()
 
-        cat_cols = data.select_dtypes(include=['object']).columns
-        if len(cat_cols) > 0:
-            cat = st.selectbox("Category", ["None"] + list(cat_cols))
-            if cat != "None":
-                vals = st.multiselect("Values", data[cat].unique())
-                if vals:
-                    filtered = filtered[filtered[cat].isin(vals)]
+    if len(numeric_cols) == 0:
+        st.error("❌ No numeric columns available")
+    else:
+        left, right = st.columns([1,2])
 
-        st.dataframe(filtered.head())
+        # -------- LEFT PANEL --------
+        with left:
+            st.markdown("### ⚙️ Controls")
 
-        if chart == "Scatter":
-            st.plotly_chart(px.scatter(filtered, x=x, y=y))
-        elif chart == "Line":
-            st.plotly_chart(px.line(filtered, x=x, y=y))
-        elif chart == "Bar":
-            st.plotly_chart(px.bar(filtered, x=x, y=y))
-        else:
-            st.plotly_chart(px.histogram(filtered, x=x))
+            chart = st.selectbox(
+                "Chart Type",
+                ["Scatter","Line","Bar","Histogram","Box","Violin","Pie","Heatmap","Area","Density"]
+            )
 
+            x = st.selectbox("X-axis", data.columns)
+
+            y = None
+            if chart not in ["Histogram","Pie","Heatmap","Density"]:
+                y = st.selectbox("Y-axis", numeric_cols)
+
+            # 🔹 Filter
+            st.markdown("### 🎯 Filters")
+
+            filtered = data.copy()
+
+            if len(cat_cols) > 0:
+                cat = st.selectbox("Category", ["None"] + cat_cols)
+
+                if cat != "None":
+                    vals = st.multiselect("Values", data[cat].dropna().unique())
+
+                    if vals:
+                        filtered = filtered[filtered[cat].isin(vals)]
+
+            st.write(f"Rows after filter: {filtered.shape[0]}")
+
+        # -------- RIGHT PANEL --------
+        with right:
+            st.markdown("### 📊 Chart Output")
+
+            if filtered.empty:
+                st.warning("No data after filtering")
+            else:
+                try:
+                    if chart == "Scatter":
+                        fig = px.scatter(filtered, x=x, y=y)
+
+                    elif chart == "Line":
+                        fig = px.line(filtered, x=x, y=y)
+
+                    elif chart == "Bar":
+                        fig = px.bar(filtered, x=x, y=y)
+
+                    elif chart == "Histogram":
+                        fig = px.histogram(filtered, x=x)
+
+                    elif chart == "Box":
+                        fig = px.box(filtered, x=x, y=y)
+
+                    elif chart == "Violin":
+                        fig = px.violin(filtered, x=x, y=y, box=True)
+
+                    elif chart == "Pie":
+                        fig = px.pie(filtered, names=x)
+
+                    elif chart == "Heatmap":
+                        corr = filtered[numeric_cols].corr()
+                        fig = px.imshow(corr, text_auto=True)
+
+                    elif chart == "Area":
+                        fig = px.area(filtered, x=x, y=y)
+
+                    elif chart == "Density":
+                        fig = px.density_contour(filtered, x=x, y=y)
+
+                    st.plotly_chart(fig, use_container_width=True)
+
+                except Exception as e:
+                    st.error(f"Chart error: {str(e)}")
+
+            st.markdown("---")
+            st.subheader("📄 Data Preview")
+            st.dataframe(filtered.head(), use_container_width=True)
+
+        # -------- AI INSIGHTS --------
+        st.markdown("---")
+        st.subheader("🤖 Chart Insights (AI)")
+
+        if st.button("Generate Chart Insights"):
+            sample = filtered.head(20).to_string()
+
+            prompt = f"""
+            Analyze this dataset based on visual patterns:
+
+            {sample}
+
+            Provide:
+            - Key trends
+            - Relationships between variables
+            - Outliers or anomalies
+            - Business insights
+            - Actionable recommendations
+            """
+
+            with st.spinner("Generating insights..."):
+                output = safe_ai([{"role":"user","content":prompt}])
+                st.success(output)
     # ---------- AI ----------
     with tab3:
         st.subheader("🧠 AI Business Intelligence Engine")
