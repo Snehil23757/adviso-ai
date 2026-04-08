@@ -43,17 +43,18 @@ def can_call():
     return time.time() - st.session_state.last_call > 5
 
 def safe_ai(messages):
+    if not can_call():
+        return "cooldown", "⏳ Please wait a few seconds before making another AI call."
+    
+    st.session_state.last_call = time.time()
     try:
-        if not can_call():
-            return "⏳ Wait a few seconds"
-        st.session_state.last_call = time.time()
         res = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages
         )
-        return res.choices[0].message.content
+        return "success", res.choices[0].message.content
     except Exception as e:
-        return f"⚠️ {str(e)}"
+        return "error", f"⚠️ AI Error: {str(e)}"
 
 def save_history(title, content):
     st.session_state.history.append({"title": title, "content": content})
@@ -184,9 +185,14 @@ if file:
             {data_summary}
             """
             with st.spinner("Generating comprehensive report..."):
-                out = safe_ai([{"role":"user","content":prompt}])
-                st.success(out)
-                save_history("Comprehensive AI Report", out)
+                status, out = safe_ai([{"role":"user","content":prompt}])
+                if status == "success":
+                    st.success(out)
+                    save_history("Comprehensive AI Report", out)
+                elif status == "cooldown":
+                    st.warning(out)
+                else: # status == "error"
+                    st.error(out)
 
     # ---------- CHAT ----------
     with tab4:
@@ -203,9 +209,14 @@ if file:
             User's question: {q}
             """
             with st.spinner("Thinking..."):
-                out = safe_ai([{"role":"user","content":data_summary_for_chat}])
-                st.success(out)
-                save_history(f"Chat: {q}", out)
+                status, out = safe_ai([{"role":"user","content":data_summary_for_chat}])
+                if status == "success":
+                    st.success(out)
+                    save_history(f"Chat: {q}", out)
+                elif status == "cooldown":
+                    st.warning(out)
+                else: # status == "error"
+                    st.error(out)
 
     # ---------- IDEAS ----------
     with tab5:
@@ -235,9 +246,14 @@ if file:
             - Target Customers
             """
             with st.spinner("Generating ideas..."):
-                out = safe_ai([{"role":"user","content":prompt}])
-                st.success(out)
-                save_history("Startup Ideas", out)
+                status, out = safe_ai([{"role":"user","content":prompt}])
+                if status == "success":
+                    st.success(out)
+                    save_history("Startup Ideas", out)
+                elif status == "cooldown":
+                    st.warning(out)
+                else: # status == "error"
+                    st.error(out)
 
         # 📈 Growth Ideas
         if col2.button("📈 Growth Strategies"):
@@ -247,9 +263,14 @@ if file:
             Include marketing, scaling, and digital expansion.
             """
             with st.spinner("Analyzing..."):
-                out = safe_ai([{"role":"user","content":prompt}])
-                st.success(out)
-                save_history("Growth Ideas", out)
+                status, out = safe_ai([{"role":"user","content":prompt}])
+                if status == "success":
+                    st.success(out)
+                    save_history("Growth Ideas", out)
+                elif status == "cooldown":
+                    st.warning(out)
+                else: # status == "error"
+                    st.error(out)
 
         # 💰 Cost Optimization
         if col3.button("💰 Cost Optimization"):
@@ -258,9 +279,14 @@ if file:
             Focus on improving efficiency and profitability.
             """
             with st.spinner("Optimizing..."):
-                out = safe_ai([{"role":"user","content":prompt}])
-                st.success(out)
-                save_history("Cost Ideas", out)
+                status, out = safe_ai([{"role":"user","content":prompt}])
+                if status == "success":
+                    st.success(out)
+                    save_history("Cost Ideas", out)
+                elif status == "cooldown":
+                    st.warning(out)
+                else: # status == "error"
+                    st.error(out)
 
         st.markdown("---")
 
@@ -279,9 +305,14 @@ if file:
             - Growth Strategy
             """
             with st.spinner("Building plan..."):
-                out = safe_ai([{"role":"user","content":prompt}])
-                st.success(out)
-                save_history("Business Plan", out)
+                status, out = safe_ai([{"role":"user","content":prompt}])
+                if status == "success":
+                    st.success(out)
+                    save_history("Business Plan", out)
+                elif status == "cooldown":
+                    st.warning(out)
+                else: # status == "error"
+                    st.error(out)
 
         st.markdown("---")
 
@@ -299,9 +330,14 @@ if file:
             - Monetization strategies
             """
             with st.spinner("Analyzing dataset..."):
-                out = safe_ai([{"role":"user","content":prompt}])
-                st.success(out)
-                save_history("Data Ideas", out)
+                status, out = safe_ai([{"role":"user","content":prompt}])
+                if status == "success":
+                    st.success(out)
+                    save_history("Data Ideas", out)
+                elif status == "cooldown":
+                    st.warning(out)
+                else: # status == "error"
+                    st.error(out)
     # ---------- PROFIT ----------
     with tab6:
         st.subheader("💰 Profit Analytics Dashboard")
@@ -364,9 +400,14 @@ if file:
             Suggest ways to improve profitability, reduce cost, and increase revenue.
             """
             with st.spinner("Analyzing..."):
-                output = safe_ai([{"role":"user","content":prompt}])
-                st.success(output)
-                save_history("Profit Strategy", output)
+                status, out = safe_ai([{"role":"user","content":prompt}])
+                if status == "success":
+                    st.success(out)
+                    save_history("Profit Strategy", out)
+                elif status == "cooldown":
+                    st.warning(out)
+                else: # status == "error"
+                    st.error(out)
     # ---------- FORECAST ----------
     with tab7:
         st.subheader("📈 Advanced Forecasting (1–10 Years)")
@@ -433,9 +474,14 @@ if file:
                 - Business meaning
                 """
                 with st.spinner("Analyzing trend..."):
-                    output = safe_ai([{"role":"user","content":prompt}])
-                    st.success(output)
-                    save_history("Forecast Insight", output)
+                    status, out = safe_ai([{"role":"user","content":prompt}])
+                    if status == "success":
+                        st.success(out)
+                        save_history("Forecast Insight", out)
+                    elif status == "cooldown":
+                        st.warning(out)
+                    else: # status == "error"
+                        st.error(out)
 
         else:
             st.warning("Need at least 4 data points for forecasting")
@@ -533,9 +579,14 @@ if file:
             - Expense optimization
             """
             with st.spinner("Analyzing..."):
-                output = safe_ai([{"role":"user","content":prompt}])
-                st.success(output)
-                save_history("Budget Advice", output)
+                status, out = safe_ai([{"role":"user","content":prompt}])
+                if status == "success":
+                    st.success(out)
+                    save_history("Budget Advice", out)
+                elif status == "cooldown":
+                    st.warning(out)
+                else: # status == "error"
+                    st.error(out)
 
     # ---------- SUSTAINABILITY ----------
     with tab9:
@@ -629,9 +680,14 @@ if file:
             - ESG recommendations
             """
             with st.spinner("Analyzing sustainability..."):
-                output = safe_ai([{"role":"user","content":prompt}])
-                st.success(output)
-                save_history("Sustainability Insights", output)
+                status, out = safe_ai([{"role":"user","content":prompt}])
+                if status == "success":
+                    st.success(out)
+                    save_history("Sustainability Insights", out)
+                elif status == "cooldown":
+                    st.warning(out)
+                else: # status == "error"
+                    st.error(out)
 
     # ---------- COMPETITOR ----------
     with tab10:
@@ -763,9 +819,14 @@ if file:
             - Market positioning
             """
             with st.spinner("Analyzing competition..."):
-                output = safe_ai([{"role":"user","content":prompt}])
-                st.success(output)
-                save_history("Competitor Strategy", output)
+                status, out = safe_ai([{"role":"user","content":prompt}])
+                if status == "success":
+                    st.success(out)
+                    save_history("Competitor Strategy", out)
+                elif status == "cooldown":
+                    st.warning(out)
+                else: # status == "error"
+                    st.error(out)
 
     # ---------- KPI ----------
     with tab11:
@@ -868,9 +929,14 @@ if file:
                 - Business recommendations
                 """
                 with st.spinner("Analyzing KPI..."):
-                    output = safe_ai([{"role":"user","content":prompt}])
-                    st.success(output)
-                    save_history("KPI Insights", output)
+                    status, out = safe_ai([{"role":"user","content":prompt}])
+                    if status == "success":
+                        st.success(out)
+                        save_history("KPI Insights", out)
+                    elif status == "cooldown":
+                        st.warning(out)
+                    else: # status == "error"
+                        st.error(out)
 
         else:
             st.warning("No KPI data available")
