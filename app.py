@@ -161,9 +161,32 @@ if file:
 
     # ---------- AI ----------
     with tab3:
-        if st.button("Generate Insights"):
-            out = safe_ai([{"role":"user","content":data.head().to_string()}])
-            st.write(out)
+        st.subheader("🧠 Comprehensive AI Report")
+        if st.button("Generate AI Report"):
+            # Generate a more comprehensive data summary for AI
+            data_summary = f"""
+            Dataset Head:\n{data.head().to_string()}\n\n
+            Dataset Description:\n{data.describe(include='all').to_string()}\n\n
+            Missing Values:\n{data.isnull().sum().to_string()}\n
+            """
+
+            prompt = f"""
+            Analyze the provided dataset summary and generate a comprehensive business report.
+            The report should include:
+            - A general overview of the data.
+            - Key statistics and observations.
+            - Identified trends and patterns.
+            - Potential anomalies or outliers.
+            - Deep business insights derived from the data.
+            - Actionable recommendations based on the insights.
+
+            Dataset Summary:
+            {data_summary}
+            """
+            with st.spinner("Generating comprehensive report..."):
+                out = safe_ai([{"role":"user","content":prompt}])
+                st.success(out)
+                save_history("Comprehensive AI Report", out)
 
     # ---------- CHAT ----------
     with tab4:
