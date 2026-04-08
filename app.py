@@ -102,12 +102,11 @@ file = st.sidebar.file_uploader("Upload Data", type=["csv","xlsx"])
 
 # ---------------- MAIN ----------------
 if file:
-data = pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file)
+    data = pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file)
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(
         ["📊 Overview","📈 Charts","🧠 AI","🤖 Chat","💡 Ideas","💰 Profit","📈 Forecast","💰 Budget","🌱 Sustainability","📊 Competitor","📊 KPI"]
     )
-
     # ---------- OVERVIEW ----------
     with tab1:
         st.metric("Rows", data.shape[0])
