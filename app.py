@@ -117,7 +117,7 @@ if file:
 
     # ---------- CHARTS ----------
     # ---------- CHARTS ----------
-with tab2:
+    with tab2:
     st.subheader("📈 Advanced Data Visualization")
 
     numeric_cols = data.select_dtypes(include=['int64','float64']).columns.tolist()
