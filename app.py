@@ -190,9 +190,22 @@ if file:
 
     # ---------- CHAT ----------
     with tab4:
-        q = st.text_input("Ask")
+        q = st.text_input("Ask me anything about your data or general business queries:")
         if q:
-            st.write(safe_ai([{"role":"user","content":q}]))
+            # Generate a summary of the data for the AI to consider
+            data_summary_for_chat = f"""
+            Here's a summary of the data you uploaded:
+            Dataset Head:\n{data.head().to_string()}\n\n
+            Dataset Description:\n{data.describe(include='all').to_string()}\n\n
+            Missing Values:\n{data.isnull().sum().to_string()}\n
+            Please use this data to inform your answers when relevant. If the question cannot be answered directly from the provided data, use your general knowledge.
+
+            User's question: {q}
+            """
+            with st.spinner("Thinking..."):
+                out = safe_ai([{"role":"user","content":data_summary_for_chat}])
+                st.success(out)
+                save_history(f"Chat: {q}", out)
 
     # ---------- IDEAS ----------
     with tab5:
