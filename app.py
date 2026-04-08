@@ -133,32 +133,31 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(
         st.dataframe(stats)
 
     # ---------- CHARTS ----------
-    with tab2:
-        chart = st.selectbox("Chart", ["Scatter","Line","Bar","Histogram"])
-        x = st.selectbox("X", data.columns)
-        y = st.selectbox("Y", data.select_dtypes(include=['int64','float64']).columns)
+with tab2:
+    chart = st.selectbox("Chart", ["Scatter","Line","Bar","Histogram"])
+    x = st.selectbox("X", data.columns)
+    y = st.selectbox("Y", data.select_dtypes(include=['int64','float64']).columns)
 
-        filtered = data.copy()
+    filtered = data.copy()
 
-        cat_cols = data.select_dtypes(include=['object']).columns
-        if len(cat_cols)>0:
-            cat = st.selectbox("Category", ["None"]+list(cat_cols))
-            if cat!="None":
-                vals = st.multiselect("Values", data[cat].unique())
-                if vals:
-                    filtered = filtered[filtered[cat].isin(vals)]
+    cat_cols = data.select_dtypes(include=['object']).columns
+    if len(cat_cols) > 0:
+        cat = st.selectbox("Category", ["None"] + list(cat_cols))
+        if cat != "None":
+            vals = st.multiselect("Values", data[cat].unique())
+            if vals:
+                filtered = filtered[filtered[cat].isin(vals)]
 
-        st.dataframe(filtered.head())
+    st.dataframe(filtered.head())
 
-        if chart=="Scatter":
-            st.plotly_chart(px.scatter(filtered,x=x,y=y))
-        elif chart=="Line":
-            st.plotly_chart(px.line(filtered,x=x,y=y))
-        elif chart=="Bar":
-            st.plotly_chart(px.bar(filtered,x=x,y=y))
-        else:
-            st.plotly_chart(px.histogram(filtered,x=x))
-
+    if chart == "Scatter":
+        st.plotly_chart(px.scatter(filtered, x=x, y=y))
+    elif chart == "Line":
+        st.plotly_chart(px.line(filtered, x=x, y=y))
+    elif chart == "Bar":
+        st.plotly_chart(px.bar(filtered, x=x, y=y))
+    else:
+        st.plotly_chart(px.histogram(filtered, x=x))
 # ---------- AI ----------
 with tab3:
     st.subheader("🧠 AI Business Intelligence Engine")
