@@ -269,7 +269,7 @@ if file:
         
    # ---------- PROFIT ----------
     with tab6:
-    st.subheader("💰 Profit Analytics Dashboard")
+        st.subheader("💰 Profit Analytics Dashboard")
 
     # 🔹 Inputs
     revenue = st.number_input("Revenue (₹)", min_value=0.0)
