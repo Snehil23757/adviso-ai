@@ -194,8 +194,7 @@ industry = st.selectbox(
     "Select Industry",
     industry_options,
     index=0
-
-
+)
 if category == "Technology":
     sub = st.selectbox("Sub Industry", ["AI","SaaS","Cybersecurity"])
 elif category == "Finance":
