@@ -268,7 +268,7 @@ if file:
             save_history("Data Ideas", out)
         
    # ---------- PROFIT ----------
-with tab6:
+    with tab6:
     st.subheader("💰 Profit Analytics Dashboard")
 
     # 🔹 Inputs
@@ -333,7 +333,7 @@ with tab6:
             st.success(output)
             save_history("Profit Strategy", output)
 # ---------- FORECAST ----------
-with tab7:
+    with tab7:
     st.subheader("📈 Advanced Forecasting (1–10 Years)")
 
     # 🔹 Select Column
@@ -405,7 +405,7 @@ with tab7:
     else:
         st.warning("Need at least 4 data points for forecasting")
 # ---------- BUDGET ----------
-with tab8:
+    with tab8:
     st.subheader("💰 Advanced Budget Planning Dashboard")
 
     # 🔹 Income & Expenses
@@ -503,7 +503,7 @@ with tab8:
             save_history("Budget Advice", output)
 
   # ---------- SUSTAINABILITY ----------
-with tab9:
+    with tab9:
     st.subheader("🌱 Sustainability & ESG Dashboard")
 
     # 🔹 Inputs
@@ -599,7 +599,7 @@ with tab9:
             save_history("Sustainability Insights", output)
 
 # ---------- COMPETITOR ----------
-with tab10:
+    with tab10:
     st.subheader("📊 Advanced Competitor Analysis Dashboard")
 
     # 🔹 Inputs (FIX: added keys)
@@ -733,7 +733,7 @@ with tab10:
             save_history("Competitor Strategy", output)
 
    # ---------- KPI ----------
-with tab11:
+    with tab11:
     st.subheader("📊 Advanced KPI Dashboard")
 
     # 🔹 Select KPI Column
