@@ -109,7 +109,7 @@ if file:
     )
 
     # ---------- OVERVIEW ----------
-   with tab1:
+    with tab1:
     st.subheader("📊 Dataset Overview")
 
     col1, col2, col3 = st.columns(3)
