@@ -162,6 +162,7 @@ with tab2:
 with tab3:
     st.subheader("🧠 AI Business Intelligence Engine")
 
+    # 🔹 Analysis Type
     st.markdown("### 🔍 Select Analysis Type")
 
     analysis_type = st.selectbox(
@@ -175,8 +176,7 @@ with tab3:
         ]
     )
 
-    st.markdown("---")
-
+    # 🔹 Detail Level
     detail_level = st.selectbox(
         "Detail Level",
         ["Basic", "Detailed", "Advanced (Consultant Level)"]
@@ -184,32 +184,56 @@ with tab3:
 
     st.markdown("---")
 
+    # 🔹 Generate Button
     if st.button("🚀 Generate AI Insights"):
 
+        # Take sample of data
         sample = data.head(15).to_string()
 
+        # 🔥 Strong Prompt
         prompt = f"""
-        You are a senior business consultant.
+        You are an expert business consultant.
 
-        Analyze this dataset:
+        Analyze the dataset below:
+
         {sample}
 
         Analysis Type: {analysis_type}
         Detail Level: {detail_level}
 
-        Provide:
-        1. Key Insights
-        2. Growth Opportunities
-        3. Risks & Loopholes
-        4. Recommendations
-        5. Strategic Plan
+        Give output in structured format:
+
+        1. 📊 Key Insights
+        - Important patterns
+        - Trends
+
+        2. 🚀 Growth Opportunities
+        - Revenue improvement ideas
+        - Expansion strategies
+
+        3. ⚠️ Risks & Loopholes
+        - Weak points
+        - Hidden problems
+
+        4. 💡 Recommendations
+        - Step-by-step actions
+        - Immediate improvements
+
+        5. 📈 Strategic Plan
+        - Short-term
+        - Mid-term
+        - Long-term
+
+        Keep it practical and business-focused.
         """
 
-        with st.spinner("Analyzing..."):
-            output = safe_ai([{"role":"user","content":prompt}])
-            st.success("Analysis Complete")
-            st.write(output)
+        with st.spinner("Analyzing deeply..."):
+            output = safe_ai([{"role": "user", "content": prompt}])
 
+            st.success("✅ AI Analysis Generated")
+
+            st.markdown("### 📑 AI Report")
+            st.write(output)
     # ---------- CHAT ----------
     with tab4:
         q = st.text_input("Ask")
