@@ -189,7 +189,6 @@ with tab3:
 
         sample = data.head(15).to_string()
 
-        # 🔥 Dynamic Prompt (VERY POWERFUL)
         prompt = f"""
         You are a senior business consultant.
 
@@ -199,44 +198,18 @@ with tab3:
         Analysis Type: {analysis_type}
         Detail Level: {detail_level}
 
-        Provide a structured response with:
-
-        1. 📊 Key Insights
-        - What patterns do you see?
-        - Important trends
-
-        2. 🚀 Growth Opportunities
-        - Specific ways to grow revenue
-        - Market expansion ideas
-        - Scaling strategies
-
-        3. ⚠️ Risks & Loopholes
-        - Hidden problems in data
-        - Weak areas in business
-        - Operational inefficiencies
-
-        4. 💡 Recommendations
-        - Step-by-step actions
-        - What should be done immediately
-        - What should be done long-term
-
-        5. 📈 Strategic Plan
-        - Short-term (0–3 months)
-        - Mid-term (3–12 months)
-        - Long-term (1–3 years)
-
-        Make the answer practical, data-driven, and business-focused.
+        Provide:
+        1. Key Insights
+        2. Growth Opportunities
+        3. Risks & Loopholes
+        4. Recommendations
+        5. Strategic Plan
         """
 
-        with st.spinner("Analyzing deeply..."):
+        with st.spinner("Analyzing..."):
             output = safe_ai([{"role":"user","content":prompt}])
-
-            st.success("✅ Analysis Generated")
-
-            st.markdown("### 📑 AI Report")
             st.write(output)
 
-            save_history("AI Advanced Insights", output)
     # ---------- CHAT ----------
     with tab4:
         q = st.text_input("Ask")
