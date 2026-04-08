@@ -159,7 +159,7 @@ if file:
         else:
             st.plotly_chart(px.histogram(filtered,x=x))
 
-    # ---------- AI ----------
+  # ---------- AI ----------
 with tab3:
     st.subheader("🧠 AI Business Intelligence Engine")
 
@@ -208,6 +208,7 @@ with tab3:
 
         with st.spinner("Analyzing..."):
             output = safe_ai([{"role":"user","content":prompt}])
+            st.success("Analysis Complete")
             st.write(output)
 
     # ---------- CHAT ----------
