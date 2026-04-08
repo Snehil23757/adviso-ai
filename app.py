@@ -109,10 +109,49 @@ if file:
     )
 
     # ---------- OVERVIEW ----------
-    with tab1:
-        st.metric("Rows", data.shape[0])
-        st.metric("Columns", data.shape[1])
-        st.dataframe(data.head())
+   with tab1:
+    st.subheader("📊 Dataset Overview")
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Rows", data.shape[0])
+    col2.metric("Columns", data.shape[1])
+    col3.metric("Missing Values", data.isnull().sum().sum())
+
+    st.markdown("---")
+
+    # 🔹 Missing Values Table
+    st.subheader("🧩 Missing Data Analysis")
+
+    missing = data.isnull().sum()
+    percent = (missing / len(data)) * 100
+
+    missing_df = pd.DataFrame({
+        "Column": missing.index,
+        "Missing Count": missing.values,
+        "Missing %": percent.values
+    }).sort_values(by="Missing %", ascending=False)
+
+    st.dataframe(missing_df, use_container_width=True)
+
+    st.bar_chart(missing)
+
+    st.markdown("---")
+
+    # 🔹 Data Preview
+    st.subheader("📄 Data Preview")
+
+    st.dataframe(data.head(), use_container_width=True)
+
+    with st.expander("View Full Dataset"):
+        st.dataframe(data, use_container_width=True)
+
+    st.markdown("---")
+
+    # 🔹 Statistics
+    st.subheader("📈 Statistical Summary")
+
+    stats = data.describe()
+    st.dataframe(stats, use_container_width=True)
 
     # ---------- CHARTS ----------
     with tab2:
