@@ -172,7 +172,7 @@ if file:
             st.write(safe_ai([{"role":"user","content":q}]))
 
 # ---------- IDEAS ----------
-with tab5:
+    with tab5:
     st.subheader("💡 AI Business Ideation Engine")
 
     # 🔹 Inputs
