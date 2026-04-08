@@ -161,9 +161,8 @@ if file:
 
   # ---------- AI ----------
 with tab3:
-    st.subheader("🧠 AI Business Intelligence Engine")
-
-    st.markdown("### 🔍 Select Analysis Type")
+    st.subheader("🧠 AI Business Intelligence Engine"
+                 st.markdown("### 🔍 Select Analysis Type")
 
     analysis_type = st.selectbox(
         "Choose Insight Type",
