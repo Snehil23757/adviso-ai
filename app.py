@@ -110,8 +110,7 @@ if file:
 
     # ---------- OVERVIEW ----------
     with tab1:
-    st.subheader("📊 Dataset Overview")
-
+        st.subheader("📊 Dataset Overview")
     col1, col2, col3 = st.columns(3)
     col1.metric("Rows", data.shape[0])
     col2.metric("Columns", data.shape[1])
