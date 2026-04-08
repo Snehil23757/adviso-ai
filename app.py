@@ -40,11 +40,12 @@ if "last_call" not in st.session_state:
 
 # ---------------- FUNCTIONS ----------------
 def can_call():
-    return time.time() - st.session_state.last_call > 5
+    # Cooldown period increased to 10 seconds to allow AI more time to respond
+    return time.time() - st.session_state.last_call > 10
 
 def safe_ai(messages):
     if not can_call():
-        return "cooldown", "⏳ Please wait a few seconds before making another AI call."
+        return "cooldown", "⏳ Please wait at least 10 seconds before making another AI call. The AI is still processing or on cooldown."
     
     st.session_state.last_call = time.time()
     try:
