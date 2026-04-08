@@ -154,18 +154,71 @@ if file:
 
     # ---------- CHARTS ----------
     with tab2:
-        chart = st.selectbox("Chart", ["Scatter","Line","Bar","Histogram"])
-        x = st.selectbox("X", data.columns)
-        y = st.selectbox("Y", data.select_dtypes(include=['int64','float64']).columns)
+        st.subheader("📈 Data Visualization")
 
-        if chart=="Scatter":
-            st.plotly_chart(px.scatter(data,x=x,y=y))
-        elif chart=="Line":
-            st.plotly_chart(px.line(data,x=x,y=y))
-        elif chart=="Bar":
-            st.plotly_chart(px.bar(data,x=x,y=y))
+    # 🔹 Column separation
+    numeric_cols = data.select_dtypes(include=['int64','float64']).columns.tolist()
+    cat_cols = data.select_dtypes(include=['object']).columns.tolist()
+
+    if len(numeric_cols) == 0:
+        st.error("❌ No numeric columns available for plotting")
+        st.stop()
+
+    # 🔹 Layout (2 columns)
+    col_left, col_right = st.columns([1,2])
+
+    with col_left:
+        st.markdown("### ⚙️ Chart Controls")
+
+        chart = st.selectbox("Chart Type", ["Scatter","Line","Bar","Histogram"])
+
+        x = st.selectbox("X-axis", data.columns)
+
+        y = None
+        if chart != "Histogram":
+            y = st.selectbox("Y-axis", numeric_cols)
+
+        # 🔹 Filter section
+        st.markdown("### 🎯 Filter Data")
+
+        filtered = data.copy()
+
+        if len(cat_cols) > 0:
+            cat = st.selectbox("Category Filter", ["None"] + cat_cols)
+
+            if cat != "None":
+                vals = st.multiselect("Select Values", data[cat].dropna().unique())
+
+                if vals:
+                    filtered = filtered[filtered[cat].isin(vals)]
+
+        st.markdown("---")
+        st.write(f"Filtered Rows: {filtered.shape[0]}")
+
+    with col_right:
+        st.markdown("### 📊 Chart Output")
+
+        if filtered.empty:
+            st.warning("⚠️ No data available after filtering")
         else:
-            st.plotly_chart(px.histogram(data,x=x))
+            try:
+                if chart == "Scatter":
+                    fig = px.scatter(filtered, x=x, y=y)
+                elif chart == "Line":
+                    fig = px.line(filtered, x=x, y=y)
+                elif chart == "Bar":
+                    fig = px.bar(filtered, x=x, y=y)
+                else:
+                    fig = px.histogram(filtered, x=x)
+
+                st.plotly_chart(fig, use_container_width=True)
+
+            except Exception as e:
+                st.error(f"⚠️ Chart error: {str(e)}")
+
+        st.markdown("---")
+        st.subheader("📄 Data Preview")
+        st.dataframe(filtered.head(), use_container_width=True)
 
     # ---------- AI ----------
     with tab3:
