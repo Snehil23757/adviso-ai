@@ -46,7 +46,7 @@ def can_call():
 def safe_ai(messages):
     if not can_call():
         return "cooldown", "⏳ Please wait at least 10 seconds before making another AI call. The AI is still processing or on cooldown."
-    
+
     st.session_state.last_call = time.time()
     try:
         res = client.chat.completions.create(
@@ -197,6 +197,41 @@ if file:
 
     # ---------- CHAT ----------
     with tab4:
+        st.subheader("🤖 AI Data Chatbot")
+
+        # Display initial report or generate if not present
+        if "chat_initial_report_status" not in st.session_state:
+            # Generate a concise initial data summary for the AI
+            data_summary_for_initial_chat = f"""
+            Dataset Head:\n{data.head().to_string()}\n\n
+            Dataset Description:\n{data.describe().to_string()}\n\n
+            Missing Values:\n{data.isnull().sum().to_string()}\n
+            """
+            initial_prompt = f"""
+            Based on the following data summary, provide a brief, high-level overview
+            of the dataset, pointing out any immediate insights, interesting facts,
+            or potential areas for further exploration. Focus on general business
+            implications. Keep it concise, like an introductory chat message.
+
+            Dataset Summary:
+            {data_summary_for_initial_chat}
+            """
+            with st.spinner("Generating initial data insights..."):
+                status, out = safe_ai([{"role":"user","content":initial_prompt}])
+                st.session_state.chat_initial_report_status = status
+                st.session_state.chat_initial_report_content = out
+                save_history("Initial Chat Insights", out)
+
+        # Display the initial report
+        if st.session_state.chat_initial_report_status == "success":
+            st.markdown(st.session_state.chat_initial_report_content)
+        elif st.session_state.chat_initial_report_status == "cooldown":
+            st.warning(st.session_state.chat_initial_report_content)
+        else: # error
+            st.error(st.session_state.chat_initial_report_content)
+
+        st.markdown("---") # Separator
+
         q = st.text_input("Ask me anything about your data or general business queries:")
         if q:
             # Generate a summary of the data for the AI to consider
