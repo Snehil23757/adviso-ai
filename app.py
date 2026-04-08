@@ -171,9 +171,9 @@ if file:
         if q:
             st.write(safe_ai([{"role":"user","content":q}]))
 
-# ---------- IDEAS ----------
-with tab5:
-    st.subheader("💡 AI Business Ideation Engine")
+    # ---------- IDEAS ----------
+    with tab5:
+         st.subheader("💡 AI Business Ideation Engine")
 
     # 🔹 Inputs
     industry = st.text_input("Industry (e.g., Retail, Healthcare, EdTech)")
@@ -266,6 +266,7 @@ with tab5:
             out = safe_ai([{"role":"user","content":prompt}])
             st.success(out)
             save_history("Data Ideas", out)
+        
    # ---------- PROFIT ----------
 with tab6:
     st.subheader("💰 Profit Analytics Dashboard")
