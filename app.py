@@ -176,7 +176,31 @@ with tab5:
     st.subheader("💡 AI Business Ideation Engine")
 
     # 🔹 Inputs
-    industry = st.text_input("Industry (e.g., Retail, Healthcare, EdTech)")
+   # 🔹 Industry Dropdown (Power BI Style)
+industry_options = [
+    # Major Industries
+    "Retail","Healthcare","Education","Finance","Technology","Manufacturing",
+    "Real Estate","E-commerce","Logistics","Energy","Agriculture","Hospitality",
+    "Automobile","Media & Entertainment","Telecommunications","Pharmaceuticals",
+
+    # Sub-industries / Niches
+    "EdTech","FinTech","HealthTech","AgriTech","FoodTech","CleanTech","PropTech",
+    "AI & Machine Learning","Cybersecurity","Cloud Computing","Blockchain",
+    "Digital Marketing","SaaS","Gaming","Sports","Fashion","Beauty & Cosmetics",
+    "Travel & Tourism","Fitness & Wellness","NGO / Social Impact"
+]
+
+industry = st.selectbox(
+    "Select Industry",
+    industry_options,
+    index=0
+
+
+if category == "Technology":
+    sub = st.selectbox("Sub Industry", ["AI","SaaS","Cybersecurity"])
+elif category == "Finance":
+    sub = st.selectbox("Sub Industry", ["FinTech","Insurance","Banking"])
+
     problem = st.text_area("Problem Statement (optional)")
     budget = st.selectbox("Budget Level", ["Low","Medium","High"])
     risk = st.selectbox("Risk Appetite", ["Low","Moderate","High"])
